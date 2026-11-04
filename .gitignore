@@ -1,0 +1,9 @@
+# API 인증키 — 공개 저장소에 올리지 않음 (config.example.json / data/config.example.js 참고)
+config.json
+data/config.js
+
+# 월별 원본 캐시 (fetch_data.py 가 다시 만듦)
+data/raw/
+
+__pycache__/
+*.pyc
