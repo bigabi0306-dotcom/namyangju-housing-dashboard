@@ -7,11 +7,13 @@ import { audit } from '../../../../lib/audit';
 import { PropertyForm } from '../../../../components/property-form';
 import { deleteProperty, saveProperty } from '../../../../app/actions';
 import { formatKRW, formatArea, fmtDate } from '../../../../lib/format';
+import { UploadForm } from '@/components/gallery';
+import { setImagePublic, removeImage } from '@/app/actions-upload';
 
 export default async function PropertyDetail({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser('property.read');
   const id = Number((await params).id);
-  const p = Number.isInteger(id) ? await db.property.findUnique({ where: { id }, include: { priceHistory: { orderBy: { changedAt: 'desc' } }, matches: { include: { client: true }, where: { mustFail: false, score: { gte: 50 } }, orderBy: { score: 'desc' }, take: 8 }, sources: true } }) : null;
+  const p = Number.isInteger(id) ? await db.property.findUnique({ where: { id }, include: { images: { orderBy: { id: 'asc' } }, priceHistory: { orderBy: { changedAt: 'desc' } }, matches: { include: { client: true }, where: { mustFail: false, score: { gte: 50 } }, orderBy: { score: 'desc' }, take: 8 }, sources: true } }) : null;
   if (!p) notFound();
   const canOwner = me.role === 'OWNER' || me.role === 'AGENT';
   if (canOwner && (p.ownerName || p.ownerPhone)) await audit(me.id, 'view', 'property.owner_info', p.id);
@@ -30,6 +32,10 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         <div className="card"><h2 className="mb-2 font-bold">자동 매칭 고객 (적합도 50점 이상, 필수조건 충족)</h2>
           <ul className="space-y-1 text-sm">{p.matches.map((m) => <li key={m.id}><Link href={`/clients/${m.clientId}`} className="hover:text-brand">{m.client.name}</Link> <b>{m.score}점</b></li>)}{p.matches.length === 0 && <li className="text-gray-500">해당 고객이 없습니다.</li>}</ul></div>
       </div>
+      <div className="card space-y-2"><h2 className="font-bold">사진·드론 ({p.images.length})</h2>
+        {p.images.length > 0 && <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">{p.images.map((im) => <li key={im.id} className="space-y-1 rounded-lg border p-1">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`/api/files/image/${im.id}`} alt={`${p.title} ${im.kind === 'drone' ? '드론' : '사진'}`} loading="lazy" className="h-28 w-full rounded object-cover" />
+          <div className="flex items-center justify-between text-xs"><span>{im.kind === 'drone' ? '드론' : '사진'} · {im.isPublic ? '공개' : '비공개'}</span>{canEdit && <span className="flex gap-1"><form action={setImagePublic.bind(null, im.id, !im.isPublic)}><button className="text-brand underline">{im.isPublic ? '비공개로' : '공개로'}</button></form><form action={removeImage.bind(null, im.id)}><button className="text-red-600 underline">삭제</button></form></span>}</div></li>)}</ul>}
+        {canEdit && <UploadForm propertyId={p.id} />}<p className="text-xs text-gray-400">&apos;공개&apos;로 표시한 사진만 고객용 소개자료에 사용됩니다. 사진은 로그인한 사용자만 볼 수 있으며, 외부 저장소(S3) 연동은 아직 없고 서버 디스크에 저장됩니다.</p></div>
       {canEdit ? (<details className="card"><summary className="cursor-pointer font-bold">정보 수정</summary><div className="mt-3"><PropertyForm action={saveProperty.bind(null, p.id)} p={p} canOwner={canOwner} /></div></details>) : null}
       {p.sources.length > 0 && <p className="text-xs text-gray-500">원본 데이터 {p.sources.length}건이 내부 메모와 분리되어 보관 중입니다 (마지막 수집 {fmtDate(p.sources[0].fetchedAt)}).</p>}
     </div>

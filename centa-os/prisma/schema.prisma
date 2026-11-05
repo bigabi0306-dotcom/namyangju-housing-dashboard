@@ -492,3 +492,21 @@ model OrganizationSetting {
   value     Json
   updatedAt DateTime @updatedAt
 }
+
+// ── 매물 즐겨찾기·저장된 검색 ──
+model PropertyFavorite {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  propertyId Int
+  createdAt  DateTime @default(now())
+  @@unique([userId, propertyId])
+  @@index([userId])
+}
+model SavedSearch {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  name      String
+  query     String   // URL 쿼리스트링(검증된 필터 키만 저장)
+  createdAt DateTime @default(now())
+  @@index([userId])
+}

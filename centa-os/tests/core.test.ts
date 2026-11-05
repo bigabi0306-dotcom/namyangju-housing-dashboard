@@ -146,3 +146,30 @@ test('통계 도우미: 월 버킷·가격대·이력', () => {
   assert.equal(priceBand(5e8), '5~10억'); assert.equal(priceBand(9.9e7), '1억 미만'); assert.equal(priceBand(5e9), '30억 이상');
   assert.equal(appendHistory(undefined, { at: 'a', by: 'b', action: 'c' }).length, 1); assert.equal(appendHistory([{ at: '1', by: 'x', action: 'y' }], { at: '2', by: 'x', action: 'z' }).length, 2);
 });
+import { buildPropertyWhere, withFavorites, toQueryString, fromQueryString } from '../src/lib/property-query';
+test('매물 검색 조건: 필터 변환·잘못된 값 무시', () => {
+  const w: any = buildPropertyWhere({ category: '토지', pmin: '3억', pmax: '10억', amin: '100', zoning: '계획', from: '2026-01-01', to: '2026-01-31', assignee: 'me' }, 7);
+  assert.equal(w.category, '토지'); assert.equal(w.price.gte, 300000000n); assert.equal(w.price.lte, 1000000000n); assert.equal(w.landAreaM2.gte, 100); assert.equal(w.assigneeId, 7);
+  assert.equal(w.createdAt.gte.toISOString(), '2025-12-31T15:00:00.000Z'); assert.equal(w.createdAt.lt.toISOString(), '2026-01-31T15:00:00.000Z'); // KST 1/1 ~ 1/31 포함
+  assert.equal(w.AND[0].zoning.contains, '계획');
+  const bad: any = buildPropertyWhere({ pmin: '쓰레기', amin: '-5', from: '2026-13-99x', assignee: 'x;drop' }, 1);
+  assert.equal(bad.price, undefined); assert.equal(bad.landAreaM2, undefined); assert.equal(bad.createdAt, undefined); assert.equal(bad.assigneeId, undefined);
+  const f: any = withFavorites(buildPropertyWhere({ fav: '1' }, 1), [3, 4]); assert.deepEqual(f.AND, [{ id: { in: [3, 4] } }]);
+});
+test('저장된 검색: 허용 키만 직렬화', () => {
+  const qs = toQueryString({ category: '토지', pmin: '3억', view: 'card', foo: 'x' } as any); assert.equal(qs, 'category=%ED%86%A0%EC%A7%80&pmin=3%EC%96%B5');
+  assert.deepEqual(fromQueryString('category=토지&evil=1&pmin=3억'), { category: '토지', pmin: '3억' });
+});
+import { sniffImage, isValidKey } from '../src/lib/storage';
+test('업로드: 매직바이트로 이미지 판별, 위장 파일·SVG 거부', () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 73]);
+  const jpg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 1]);
+  const webp = new Uint8Array([...Buffer.from('RIFF'), 1, 2, 3, 4, ...Buffer.from('WEBPVP8 ')]);
+  assert.equal(sniffImage(png), 'png'); assert.equal(sniffImage(jpg), 'jpg'); assert.equal(sniffImage(webp), 'webp');
+  assert.equal(sniffImage(new Uint8Array(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'))), null);
+  assert.equal(sniffImage(new Uint8Array(Buffer.from('GIF89a......'))), null); assert.equal(sniffImage(new Uint8Array(Buffer.from('MZ\x90\x00 실행파일 위장.jpg'))), null); assert.equal(sniffImage(new Uint8Array([])), null);
+});
+test('업로드: 저장 키 형식 검증으로 경로 조작 차단', () => {
+  assert.equal(isValidKey('123e4567-e89b-12d3-a456-426614174000.png'), true);
+  for (const bad of ['../../etc/passwd', '123e4567-e89b-12d3-a456-426614174000.png/../x', '/etc/passwd', 'a.png', '123e4567-e89b-12d3-a456-426614174000.svg', '123e4567-e89b-12d3-a456-426614174000.png\0.jpg']) assert.equal(isValidKey(bad), false, bad);
+});

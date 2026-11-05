@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { createSession, destroySession, requireUser, verifyPassword } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { deleteImageFile } from '@/lib/storage';
 import { normPhone, parseKRW, pyeongToM2, kstDateStr } from '@/lib/format';
 import { matchScore, DEFAULT_WEIGHTS, type MatchWeights } from '@/lib/matching';
 
@@ -83,7 +84,9 @@ const can_owner = (role: string) => role === 'OWNER' || role === 'AGENT';
 export async function deleteProperty(id: number) {
   const me = await requireUser('property.write');
   if (me.role !== 'OWNER') throw new Error('삭제는 대표 관리자만 가능합니다.');
+  const imgs = await db.propertyImage.findMany({ where: { propertyId: id }, select: { url: true } });
   await db.property.delete({ where: { id } });
+  for (const im of imgs) await deleteImageFile(im.url); // 업로드 파일도 함께 정리
   await audit(me.id, 'delete', 'property', id);
   redirect('/properties');
 }

@@ -4,7 +4,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 export default {
   poweredByHeader: false,
-  experimental: { serverActions: { bodySizeLimit: '5mb' } },
+  experimental: { serverActions: { bodySizeLimit: '30mb' } },
   async headers() {
     const prod = process.env.NODE_ENV === 'production';
     const csp = ["default-src 'self'", "script-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'", "base-uri 'self'", "form-action 'self'", "object-src 'none'"].join('; ');

@@ -23,6 +23,8 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET 필요}
       PUBLIC_DATA_KEY: ${PUBLIC_DATA_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      UPLOAD_DIR: /data/uploads
+    volumes: ["uploads:/data/uploads"]   # 매물 사진 (백업 대상: docs/OPERATIONS.md)
     depends_on:
       db: { condition: service_healthy }
     ports: ["127.0.0.1:3000:3000"]   # 외부에는 HTTPS 리버스 프록시(Caddy/Nginx)만 노출
@@ -37,3 +39,4 @@ services:
     restart: unless-stopped
 volumes:
   pgdata: {}
+  uploads: {}
