@@ -10,7 +10,7 @@ export const MENU = [
   { href: '/work', label: '업무일지', icon: NotebookPen, perm: 'work.read', ready: true },
   { href: '/calendar', label: '일정관리', icon: CalendarDays, perm: 'calendar.read', ready: true },
   { href: '/contracts', label: '계약관리', icon: FileSignature, perm: 'contract.read', ready: false },
-  { href: '/content', label: '콘텐츠 스튜디오', icon: Clapperboard, perm: 'content.read', ready: false },
+  { href: '/content', label: '콘텐츠 스튜디오', icon: Clapperboard, perm: 'content.read', ready: true },
   { href: '/stats', label: '경영 통계', icon: BarChart3, perm: 'stats.read', ready: false },
   { href: '/settings', label: '설정', icon: Settings, perm: 'settings.write', ready: false },
 ];

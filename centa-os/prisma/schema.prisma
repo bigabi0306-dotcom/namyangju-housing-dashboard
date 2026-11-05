@@ -400,6 +400,10 @@ model ContentProject {
   property  Property? @relation(fields: [propertyId], references: [id])
   scheduledAt DateTime?
   publishedUrl String?
+  options   Json?
+  analysisId Int?
+  approvedById Int?
+  approvedAt DateTime?
   isTestData Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -412,6 +416,9 @@ model ContentVersion {
   project   ContentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   version   Int
   body      String
+  source    String   @default("edit") // template / ai / edit
+  meta      Json?
+  createdById Int?
   createdAt DateTime @default(now())
 }
 model ContentPublication {

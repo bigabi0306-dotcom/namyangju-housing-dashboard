@@ -88,3 +88,38 @@ test('실거래 XML 파서(영문/국문 태그)', () => {
   const x = '<response><body><items><item><aptNm>테스트아파트</aptNm><dealAmount>  52,000</dealAmount><excluUseAr>84.97</excluUseAr><dealYear>2026</dealYear><dealMonth>9</dealMonth><umdNm>화도읍</umdNm></item><item><아파트>구태그</아파트><거래금액>10,000</거래금액><전용면적>59.9</전용면적><년>2026</년><월>10</월></item></items></body></response>';
   const t = parseTradesXml(x); assert.equal(t.length, 2); assert.equal(t[0].price, 5.2e8); assert.equal(t[0].date, '2026-09'); assert.equal(t[1].date, '2026-10'); assert.equal(t[1].name, '구태그');
 });
+import { publicFacts, templateDraft, shortsTimeline, factCheckWarnings, checkTransition, hasPlaceholder, aiRequest, CHANNELS, type Opts } from '../src/lib/content';
+const prop: any = { title: '화도 공장', category: '공장·창고', subCategory: null, dealType: '매매', region: '남양주시', publicAddress: '화도읍 일대', address: '경기 남양주시 화도읍 비밀리 12-3', lotNumber: '12-3', addressDetail: '101호', ownerName: '홍길동', ownerPhone: '010-9999-0000', internalMemo: '급매, 소유자 사정 있음', price: 1250000000n, landAreaM2: 1320, zoning: '계획관리지역', pros: '대형차 진입 용이', cons: '진입로 협소', largeTruck: true, isPublic: true, priceNegotiable: true };
+const o: Opts = { priceVisible: true, emphasize: '', exclude: '', audience: '', shortsSec: 30, includeCons: true };
+test('콘텐츠: 공개 정보만 사용 (소유자·내부메모·상세주소 유출 금지)', () => {
+  const f = publicFacts(prop, o); const all = JSON.stringify(f) + CHANNELS.map((c) => templateDraft(c, prop, f, o)).join('');
+  for (const secret of ['홍길동', '010-9999-0000', '급매', '비밀리', '12-3', '101호']) assert.ok(!all.includes(secret), `유출: ${secret}`);
+  assert.ok(f.lines['소재지'] === '화도읍 일대');
+});
+test('콘텐츠: 가격 비공개·제외 키워드', () => {
+  const f = publicFacts(prop, { ...o, priceVisible: false, exclude: '협소' }); assert.equal(f.lines['가격'], '가격은 문의 시 안내'); assert.ok(!('유의할 점' in f.lines));
+  assert.ok(!JSON.stringify(f).includes('12억'));
+});
+test('콘텐츠: 9채널 템플릿 생성·미입력 표시', () => {
+  const f = publicFacts(prop, o);
+  for (const c of CHANNELS) { const d = templateDraft(c, prop, f, o); assert.ok(d.length > 100, c); }
+  assert.ok(hasPlaceholder(templateDraft('부동산신문 칼럼', prop, f, o)), '통계·전망은 지어내지 않고 입력 필요로 남김');
+});
+test('콘텐츠: 쇼츠 구간 합계 = 총 길이', () => { for (const n of [15, 30, 45, 60]) { const t = shortsTimeline(n); assert.equal(t[0].from, 0); assert.equal(t.at(-1)!.to, n); t.forEach((s, i) => { if (i) assert.equal(s.from, t[i - 1].to); assert.ok(s.to > s.from); }); } });
+test('콘텐츠: 사실 검토 경고', () => {
+  assert.ok(factCheckWarnings('무조건 오릅니다').length >= 1); assert.ok(factCheckWarnings('GTX 호재로 개발 확정').length >= 2);
+  assert.ok(factCheckWarnings('인허가 가능합니다').length === 1); assert.deepEqual(factCheckWarnings('현장에서 본 내용입니다.'), []);
+  assert.ok(factCheckWarnings('【입력 필요: x】').some((w) => w.includes('승인 불가')));
+});
+test('콘텐츠: 상태 전환·승인 규칙', () => {
+  const ok = { canApprove: true, body: '본문', hasUrl: false, manualPublished: false };
+  assert.equal(checkTransition('검수중', '승인', ok), null);
+  assert.ok(checkTransition('검수중', '승인', { ...ok, canApprove: false })!.includes('승인 권한'));
+  assert.ok(checkTransition('작성중', '발행완료', ok)!.includes('바로 변경')); assert.ok(checkTransition('승인', '발행완료', ok)!.includes('발행 URL'));
+  assert.equal(checkTransition('승인', '발행완료', { ...ok, manualPublished: true }), null);
+  assert.ok(checkTransition('작성중', '검수중', { ...ok, body: '【입력 필요: a】' })!.includes('채우지'));
+});
+test('콘텐츠: AI 요청에 비공개 정보 없음 + 채널별 규격', () => {
+  const f = publicFacts(prop, o); const r = aiRequest('유튜브 쇼츠', f, o, 'm'); const s = JSON.stringify(r);
+  for (const secret of ['홍길동', '급매', '비밀리']) assert.ok(!s.includes(secret)); assert.ok(s.includes('정확히 30초'));
+});
