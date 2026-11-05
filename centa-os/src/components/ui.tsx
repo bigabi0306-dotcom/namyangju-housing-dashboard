@@ -23,6 +23,7 @@ export function ActionForm({ action, children, submit = '저장' }: { action: (s
   const [state, fn, pending] = useActionState(action, null);
   return <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => fn(fd)); }} className="space-y-4">{children}
     {state?.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{state.error}</p>}
+    {state?.ok && <p role="status" className="rounded-lg bg-green-50 p-3 text-sm text-green-700">저장되었습니다.</p>}
     {state?.dup && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="allowDup" /> 중복 허용</label>}
     <button className="btn" disabled={pending}>{pending ? '저장 중…' : submit}</button></form>;
 }

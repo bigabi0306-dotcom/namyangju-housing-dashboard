@@ -37,3 +37,16 @@ test('RBAC', () => {
   assert.equal(can('ASSISTANT', 'settlement.read'), false);
   assert.equal(can('OWNER', 'settlement.write'), true);
 });
+import { expand } from '../src/lib/calendar';
+test('일정: 반복 펼치기·충돌 표시', () => {
+  const d = (s: string) => new Date(s + '+09:00');
+  const ev = [
+    { id: 1, title: '주간회의', type: '기타', startAt: d('2026-11-02T10:00:00'), endAt: d('2026-11-02T11:00:00'), repeat: '매주', done: false, assigneeId: 1 },
+    { id: 2, title: '현장', type: '현장답사', startAt: d('2026-11-09T10:30:00'), endAt: d('2026-11-09T12:00:00'), repeat: null, done: false, assigneeId: 1 },
+    { id: 3, title: '다른담당', type: '고객미팅', startAt: d('2026-11-09T10:30:00'), endAt: null, repeat: null, done: false, assigneeId: 2 },
+  ];
+  const o = expand(ev, d('2026-11-01T00:00:00'), d('2026-11-16T00:00:00'));
+  assert.equal(o.filter((x) => x.id === 1).length, 2); // 11/2, 11/9 (11/16은 범위 밖)
+  const c = o.filter((x) => x.conflict).map((x) => x.id).sort();
+  assert.deepEqual(c, [1, 2]); // 같은 담당자 11/9 겹침만 충돌, 담당자 다른 3번은 제외
+});

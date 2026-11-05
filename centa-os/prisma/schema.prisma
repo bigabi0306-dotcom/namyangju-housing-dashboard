@@ -304,6 +304,7 @@ model CalendarEvent {
   propertyId Int?
   property  Property? @relation(fields: [propertyId], references: [id])
   externalId String? // Google Calendar
+  remindedAt DateTime? // 사전 알림 생성 시각
   isTestData Boolean @default(false)
   createdAt DateTime @default(now())
 }
