@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { ActionForm, Field } from '@/components/ui';
 import { createContent } from '@/app/actions-content';
-import { CHANNELS, CHANNEL_SPEC, TOPICS, publicFacts, factsText } from '@/lib/content';
+import { CHANNELS, CHANNEL_SPEC, TOPICS, publicFacts, factsText, pickProvider } from '@/lib/content';
 
 export default async function NewContent({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireUser('content.write');
@@ -11,7 +11,7 @@ export default async function NewContent({ searchParams }: { searchParams: Promi
   const pid = Number(sp.propertyId); const p = Number.isInteger(pid) && pid > 0 ? await db.property.findUnique({ where: { id: pid } }) : null;
   const channel = (CHANNELS as readonly string[]).includes(sp.channel ?? '') ? sp.channel! : CHANNELS[0];
   const preview = p ? publicFacts({ ...p, price: p.price != null ? Number(p.price) : null, deposit: p.deposit != null ? Number(p.deposit) : null, monthlyRent: p.monthlyRent != null ? Number(p.monthlyRent) : null }, { priceVisible: sp.price === '1', emphasize: '', exclude: '', audience: '', shortsSec: 30, includeCons: true }) : null;
-  const aiReady = !!process.env.ANTHROPIC_API_KEY;
+  const provider = pickProvider(process.env); const aiReady = !!provider;
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">콘텐츠 만들기</h1>
@@ -32,8 +32,9 @@ export default async function NewContent({ searchParams }: { searchParams: Promi
           <Field label="물건분석 보고서 연결 (선택, 분석에 입력한 입지·활용 내용을 사용)"><select name="analysisId" className="input"><option value="">연결 안 함</option>{analyses.map((a) => <option key={a.id} value={a.id}>#{a.id} {a.property.title} · {a.type}</option>)}</select></Field>
           <fieldset className="sm:col-span-2 space-y-1 rounded-lg border p-3 text-sm"><legend className="px-1 font-bold">생성 방식</legend>
             <label className="block"><input type="radio" name="mode" value="template" defaultChecked /> 템플릿 초안 (외부 전송 없음) — 공개 사실은 채우고, 현장 경험·통계·전망은 【입력 필요】로 남깁니다.</label>
-            <label className="block"><input type="radio" name="mode" value="ai" disabled={!aiReady} /> AI 생성 {aiReady ? '' : '(ANTHROPIC_API_KEY 미설정 — 사용 불가)'} — 위 &apos;공개 가능 정보&apos;만 외부 AI 서비스(Anthropic)로 전송됩니다.</label>
-            <label className="ml-5 block text-xs"><input type="checkbox" name="aiConsent" disabled={!aiReady} /> 위 공개 가능 정보가 외부 AI로 전송되는 것에 동의합니다 (AI 생성 시 필수)</label></fieldset></div>
+            <label className="block"><input type="radio" name="mode" value="ai" disabled={!aiReady} /> AI 생성 {aiReady ? `(${provider!.label})` : '(AI 키 미설정 — GEMINI_API_KEY 또는 ANTHROPIC_API_KEY 필요)'} — 위 &apos;공개 가능 정보&apos;만 외부 AI 서비스{aiReady ? `(${provider!.label})` : ''}로 전송됩니다.</label>
+            {aiReady && provider!.note && <p className="ml-5 text-xs text-amber-700">⚠ {provider!.note}</p>}
+            <label className="ml-5 block text-xs"><input type="checkbox" name="aiConsent" disabled={!aiReady} /> 위 공개 가능 정보가 외부 AI 서비스로 전송되는 것에 동의합니다 (AI 생성 시 필수)</label></fieldset></div>
       </ActionForm>
     </div>
   );

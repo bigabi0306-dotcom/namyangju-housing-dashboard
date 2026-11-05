@@ -9,7 +9,7 @@
 cp .env.example .env
 openssl rand -base64 48        # 출력값을 AUTH_SECRET 에 넣기
 ```
-3. `.env`에 `DB_PASSWORD`(길고 무작위), `AUTH_SECRET`을 넣습니다. (공공데이터 키·AI 키는 선택)
+3. `.env`에 `DB_PASSWORD`(길고 무작위), `AUTH_SECRET`을 넣습니다. (공공데이터 키·AI 키는 선택. AI 키는 `GEMINI_API_KEY`(무료 가능) 또는 `ANTHROPIC_API_KEY`. 키는 채팅·메일에 붙여넣지 말고 서버의 `.env`에만 입력하세요)
 4. 실행: `docker compose up -d --build`
 5. 최초 관리자 생성 (1회):
 ```bash

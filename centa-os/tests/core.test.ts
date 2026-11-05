@@ -173,3 +173,23 @@ test('업로드: 저장 키 형식 검증으로 경로 조작 차단', () => {
   assert.equal(isValidKey('123e4567-e89b-12d3-a456-426614174000.png'), true);
   for (const bad of ['../../etc/passwd', '123e4567-e89b-12d3-a456-426614174000.png/../x', '/etc/passwd', 'a.png', '123e4567-e89b-12d3-a456-426614174000.svg', '123e4567-e89b-12d3-a456-426614174000.png\0.jpg']) assert.equal(isValidKey(bad), false, bad);
 });
+import { geminiRequest, parseGeminiResponse, pickProvider } from '../src/lib/content';
+test('Gemini: 요청에 비공개 정보 없음, 시스템 지침·채널 규격 포함', () => {
+  const f = publicFacts(prop, o); const r = geminiRequest('유튜브 쇼츠', f, o); const s = JSON.stringify(r);
+  for (const secret of ['홍길동', '급매', '비밀리', '010-9999']) assert.ok(!s.includes(secret), secret);
+  assert.ok(s.includes('정확히 30초') && r.systemInstruction.parts[0].text.includes('땅폴레옹') && r.contents[0].role === 'user');
+  assert.ok(!s.includes('x-goog') && !/AQ\./.test(s), '키가 요청 본문에 들어가면 안 됨');
+});
+test('Gemini: 응답 파싱·차단·빈 응답', () => {
+  assert.deepEqual(parseGeminiResponse({ candidates: [{ content: { parts: [{ text: '## 제목\n' }, { text: '본문' }] }, finishReason: 'STOP' }] }), { ok: true, text: '## 제목\n본문' });
+  assert.match((parseGeminiResponse({ promptFeedback: { blockReason: 'SAFETY' } }) as any).error, /차단/);
+  assert.match((parseGeminiResponse({ candidates: [{ finishReason: 'MAX_TOKENS' }] }) as any).error, /MAX_TOKENS/);
+  assert.equal(parseGeminiResponse({}).ok, false);
+});
+test('AI 제공자 선택', () => {
+  assert.equal(pickProvider({}), null); assert.equal(pickProvider({ GEMINI_API_KEY: 'x' })!.id, 'gemini'); assert.equal(pickProvider({ ANTHROPIC_API_KEY: 'x' })!.id, 'anthropic');
+  assert.equal(pickProvider({ GEMINI_API_KEY: 'x', ANTHROPIC_API_KEY: 'y' })!.id, 'gemini');
+  assert.equal(pickProvider({ GEMINI_API_KEY: 'x', ANTHROPIC_API_KEY: 'y', CONTENT_AI_PROVIDER: 'anthropic' })!.id, 'anthropic');
+  assert.equal(pickProvider({ ANTHROPIC_API_KEY: 'y', CONTENT_AI_PROVIDER: 'gemini' }), null, '지정한 제공자의 키가 없으면 사용 불가');
+  assert.ok(pickProvider({ GEMINI_API_KEY: 'x' })!.note.includes('약관'));
+});

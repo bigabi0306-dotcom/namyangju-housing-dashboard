@@ -30,8 +30,8 @@ export async function createContent(_: unknown, fd: FormData) {
     if (fd.get('aiConsent') !== 'on') return { error: '외부 AI로 위 공개 정보가 전송되는 것에 동의해야 AI 생성을 사용할 수 있습니다.' };
     const r = await generateWithAI(channel, facts, opts);
     if (!r.ok) return { error: r.error };
-    body = r.text; source = 'ai'; model = r.model;
-    await audit(me.id, 'export', 'ai_external', propertyId ?? undefined, `${channel} → AI 전송(공개 항목 ${Object.keys(facts.lines).length}개)`);
+    body = r.text; source = 'ai'; model = `${r.provider}/${r.model}`;
+    await audit(me.id, 'export', 'ai_external', propertyId ?? undefined, `${channel} → 외부 AI(${r.provider}) 전송(공개 항목 ${Object.keys(facts.lines).length}개)`);
   } else body = templateDraft(channel, pf, facts, opts);
   const warnings = [...facts.warnings, ...factCheckWarnings(body, facts)];
   const title = str(fd.get('title')) ?? `${p?.title ?? topic} — ${channel}`;

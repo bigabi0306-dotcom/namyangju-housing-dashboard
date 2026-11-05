@@ -243,22 +243,60 @@ export const BRAND_STYLE = `너는 경기 동북부(남양주·구리·포천) �
 규칙: 사실과 전망을 구분하고, 전망은 "~로 예상됩니다/~할 가능성" 형태로 쓴다. 제공된 '사실' 밖의 내용(현장 인상, 통계, 정책)은 지어내지 말고 '${PLACEHOLDER}: 항목】' 로 남긴다. 가격은 제공된 경우에만 쓴다.
 각 채널의 독자·형식·목적에 맞게 새로 구성하며, 다른 채널 글을 줄이거나 늘리는 방식으로 만들지 않는다.`;
 
-export function aiRequest(ch: Channel, f: Facts, o: Opts, model: string) {
+function aiUserPrompt(ch: Channel, f: Facts, o: Opts) {
   const s = CHANNEL_SPEC[ch];
-  const user = `채널: ${ch}\n독자: ${o.audience || s.audience}\n목적: ${s.purpose}\n출력 형식: ${s.format}${ch.includes('쇼츠') || ch.includes('릴스') ? `\n길이: ${o.shortsSec}초(세로 9:16), 초 단위 구간 합계가 정확히 ${o.shortsSec}초` : ''}\n강조할 장점: ${o.emphasize || '(지정 없음)'}\n\n[사용할 수 있는 사실]\n${factsText(f)}\n\n마크다운 '## 소제목' 형식으로 작성해 줘.`;
-  return { model, max_tokens: 4000, system: BRAND_STYLE, messages: [{ role: 'user', content: user }] };
+  return `채널: ${ch}\n독자: ${o.audience || s.audience}\n목적: ${s.purpose}\n출력 형식: ${s.format}${ch.includes('쇼츠') || ch.includes('릴스') ? `\n길이: ${o.shortsSec}초(세로 9:16), 초 단위 구간 합계가 정확히 ${o.shortsSec}초` : ''}\n강조할 장점: ${o.emphasize || '(지정 없음)'}\n\n[사용할 수 있는 사실]\n${factsText(f)}\n\n마크다운 '## 소제목' 형식으로 작성해 줘.`;
 }
-export async function generateWithAI(ch: Channel, f: Facts, o: Opts): Promise<{ ok: true; text: string; model: string } | { ok: false; error: string }> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return { ok: false, error: 'ANTHROPIC_API_KEY가 설정되지 않았습니다(.env). 템플릿 초안을 사용하세요.' };
-  const model = process.env.CONTENT_AI_MODEL || 'claude-sonnet-5-5';
+export function aiRequest(ch: Channel, f: Facts, o: Opts, model: string) {
+  return { model, max_tokens: 4000, system: BRAND_STYLE, messages: [{ role: 'user', content: aiUserPrompt(ch, f, o) }] };
+}
+export function geminiRequest(ch: Channel, f: Facts, o: Opts) {
+  return { systemInstruction: { parts: [{ text: BRAND_STYLE }] }, contents: [{ role: 'user', parts: [{ text: aiUserPrompt(ch, f, o) }] }], generationConfig: { maxOutputTokens: 4000, temperature: 0.7 } };
+}
+/** Gemini 응답에서 본문 추출. 차단·빈 응답은 사람이 이해할 수 있는 오류로 변환 */
+export function parseGeminiResponse(j: any): { ok: true; text: string } | { ok: false; error: string } {
+  const block = j?.promptFeedback?.blockReason; if (block) return { ok: false, error: `AI가 요청을 차단했습니다(${block}). 내용을 수정해 다시 시도하세요.` };
+  const c = j?.candidates?.[0];
+  const text = (c?.content?.parts ?? []).map((x: any) => x?.text ?? '').join('').trim();
+  if (!text) return { ok: false, error: c?.finishReason && c.finishReason !== 'STOP' ? `AI 응답이 비었습니다(${c.finishReason}).` : 'AI 응답이 비어 있습니다.' };
+  return { ok: true, text };
+}
+export type AiProvider = { id: 'gemini' | 'anthropic'; label: string; note: string };
+/** 사용할 AI 제공자 선택: CONTENT_AI_PROVIDER 지정 > Gemini 키 > Anthropic 키 */
+export function pickProvider(env: Record<string, string | undefined>): AiProvider | null {
+  const gem: AiProvider = { id: 'gemini', label: 'Google Gemini', note: '무료 등급은 구글 약관상 입력 내용이 서비스 개선에 쓰일 수 있습니다. 공개해도 되는 정보만 전송됩니다(구글 약관 확인).' };
+  const ant: AiProvider = { id: 'anthropic', label: 'Anthropic Claude', note: '' };
+  const want = env.CONTENT_AI_PROVIDER;
+  if (want === 'gemini') return env.GEMINI_API_KEY ? gem : null;
+  if (want === 'anthropic') return env.ANTHROPIC_API_KEY ? ant : null;
+  return env.GEMINI_API_KEY ? gem : env.ANTHROPIC_API_KEY ? ant : null;
+}
+export type AiResult = { ok: true; text: string; model: string; provider: string } | { ok: false; error: string };
+async function callGemini(ch: Channel, f: Facts, o: Opts): Promise<AiResult> {
+  const key = process.env.GEMINI_API_KEY as string; const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, { method: 'POST', headers: { 'x-goog-api-key': key, 'content-type': 'application/json' }, body: JSON.stringify(geminiRequest(ch, f, o)), signal: AbortSignal.timeout(90_000) });
+    const j: any = await res.json().catch(() => ({}));
+    if (res.status === 429) return { ok: false, error: 'Gemini 무료 사용 한도를 초과했습니다. 잠시 후 다시 시도하거나 템플릿 초안을 사용하세요.' };
+    if (res.status === 400 || res.status === 403 || res.status === 404) return { ok: false, error: `Gemini 요청이 거절되었습니다(HTTP ${res.status}): ${j?.error?.message ?? ''} — 키 또는 모델명(GEMINI_MODEL)을 확인하세요.` };
+    if (!res.ok) return { ok: false, error: `Gemini 서비스 오류 HTTP ${res.status}: ${j?.error?.message ?? ''}` };
+    const r = parseGeminiResponse(j); return r.ok ? { ok: true, text: r.text, model, provider: 'Google Gemini' } : r;
+  } catch (e) { return { ok: false, error: `Gemini 호출 실패: ${(e as Error).message}` }; }
+}
+async function callAnthropic(ch: Channel, f: Facts, o: Opts): Promise<AiResult> {
+  const key = process.env.ANTHROPIC_API_KEY as string; const model = process.env.CONTENT_AI_MODEL || 'claude-sonnet-5-5';
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }, body: JSON.stringify(aiRequest(ch, f, o, model)), signal: AbortSignal.timeout(90_000) });
     const j: any = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: `AI 서비스 오류 HTTP ${res.status}: ${j?.error?.message ?? ''}` };
     const text = (j.content ?? []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n').trim();
-    return text ? { ok: true, text, model } : { ok: false, error: 'AI 응답이 비어 있습니다.' };
+    return text ? { ok: true, text, model, provider: 'Anthropic Claude' } : { ok: false, error: 'AI 응답이 비어 있습니다.' };
   } catch (e) { return { ok: false, error: `AI 호출 실패: ${(e as Error).message}` }; }
+}
+export async function generateWithAI(ch: Channel, f: Facts, o: Opts): Promise<AiResult> {
+  const p = pickProvider(process.env);
+  if (!p) return { ok: false, error: 'AI 키가 설정되지 않았습니다(.env의 GEMINI_API_KEY 또는 ANTHROPIC_API_KEY). 템플릿 초안을 사용하세요.' };
+  return p.id === 'gemini' ? callGemini(ch, f, o) : callAnthropic(ch, f, o);
 }
 
 /** 상태 전환 규칙 */
