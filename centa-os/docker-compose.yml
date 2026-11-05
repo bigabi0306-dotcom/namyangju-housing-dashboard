@@ -1,0 +1,16 @@
+# 운영 배포 예시. 비밀값은 .env 로 주입 (저장소에 커밋 금지).
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: centa, POSTGRES_PASSWORD: "${DB_PASSWORD}", POSTGRES_DB: centa_os }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    restart: unless-stopped
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://centa:${DB_PASSWORD}@db:5432/centa_os
+      AUTH_SECRET: ${AUTH_SECRET}
+    depends_on: [db]
+    ports: ["3000:3000"]
+    restart: unless-stopped
+volumes: { pgdata: {} }

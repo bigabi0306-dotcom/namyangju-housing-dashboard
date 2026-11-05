@@ -1,0 +1,480 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── 인증/권한 ─────────────────────────────────────────
+model Role {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique // OWNER, AGENT, ASSISTANT, CONTENT, VIEWER
+  name        String
+  users       User[]
+  permissions Permission[]
+}
+model Permission {
+  id     Int    @id @default(autoincrement())
+  roleId Int
+  role   Role   @relation(fields: [roleId], references: [id])
+  code   String // e.g. client.read, contract.write, settlement.read
+  @@unique([roleId, code])
+}
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  properties   Property[] @relation("PropAssignee")
+  clients      Client[]   @relation("ClientAssignee")
+  tasks        Task[]
+  workLogs     WorkLog[]
+  events       CalendarEvent[]
+  notifications Notification[]
+  auditLogs    AuditLog[]
+}
+
+// ── 매물 ─────────────────────────────────────────────
+model Property {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique // 내부 매물번호 CT-000001
+  sourceId      String?  // 원본 매물번호
+  sourceSystem  String?
+  title         String
+  category      String   // 공장·창고, 토지, 아파트, 상가, 통매매·통건물, 주택, 사무실, 지식산업센터, 기타
+  subCategory   String?
+  dealType      String   // 매매/전세/월세/기타
+  status        String   @default("신규")
+  region        String   // 시군구
+  address       String   // 내부용 전체 주소
+  lotNumber     String?
+  publicAddress String?  // 공개용 주소
+  addressDetail String?
+  lat           Float?
+  lng           Float?
+  landAreaM2    Float?
+  buildingAreaM2 Float?
+  totalFloorAreaM2 Float?
+  exclusiveAreaM2 Float?
+  landCategory  String?  // 지목
+  zoning        String?  // 용도지역
+  zoningDistrict String?
+  roadCondition String?
+  landRestrictions String?
+  coverageRatio Float?
+  floorAreaRatio Float?
+  floors        String?
+  buildingUse   String?
+  approvalDate  DateTime?
+  parking       String?
+  ceilingHeight Float?
+  elevator      Boolean?
+  structure     String?
+  largeTruck    Boolean?
+  price         BigInt?  // 매매가 (원)
+  deposit       BigInt?
+  monthlyRent   BigInt?
+  maintenanceFee BigInt?
+  vatInfo       String?
+  priceNegotiable Boolean @default(false)
+  features      String?
+  pros          String?
+  cons          String?
+  usability     String?
+  verifiedAt    DateTime?
+  publicDescription String?
+  internalMemo  String?   // 내부 메모 (동기화로 덮어쓰지 않음)
+  ownerName     String?   // 소유자·의뢰인 (비공개)
+  ownerPhone    String?
+  isPublic      Boolean  @default(false)
+  isTestData    Boolean  @default(false)
+  needsReview   Boolean  @default(false) // 원본에서 사라짐 → 확인 대기
+  assigneeId    Int?
+  assignee      User?    @relation("PropAssignee", fields: [assigneeId], references: [id])
+  createdById   Int?
+  updatedById   Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  sources       PropertySource[]
+  priceHistory  PropertyPriceHistory[]
+  images        PropertyImage[]
+  documents     PropertyDocument[]
+  matches       PropertyClientMatch[]
+  visits        PropertyVisit[]
+  analyses      PropertyAnalysis[]
+  contracts     Contract[]
+  events        CalendarEvent[]
+  workLogs      WorkLog[]
+  contents      ContentProject[]
+  @@index([category, status])
+  @@index([region])
+}
+model PropertySource {      // 원본 데이터 스냅샷 (내부 메모와 분리)
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  system     String
+  externalId String
+  rawJson    Json
+  fetchedAt  DateTime @default(now())
+  @@unique([system, externalId])
+}
+model PropertySyncLog {
+  id        Int      @id @default(autoincrement())
+  system    String
+  method    String   // CSV, API, MANUAL
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+  added     Int      @default(0)
+  updated   Int      @default(0)
+  priceChanged Int   @default(0)
+  duplicates Int     @default(0)
+  missing   Int      @default(0)
+  errors    String?
+  status    String   @default("완료")
+}
+model PropertyPriceHistory {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  oldPrice   BigInt?
+  newPrice   BigInt?
+  changedAt  DateTime @default(now())
+  informed   Boolean  @default(false) // 관심 고객에게 안내 여부
+}
+model PropertyImage {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  url        String
+  kind       String   @default("photo") // photo, drone
+  isPublic   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+model PropertyDocument {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name       String
+  url        String
+  confidential Boolean @default(true)
+  createdAt  DateTime @default(now())
+}
+
+// ── 고객 ─────────────────────────────────────────────
+model Client {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  phone       String
+  phoneNorm   String   // 숫자만 (중복검사)
+  company     String?
+  kind        String   // 매수/매도/임대/임차/투자/기타
+  wantRegion  String?
+  wantPriceMin BigInt?
+  wantPriceMax BigInt?
+  wantAreaMin Float?
+  wantAreaMax Float?
+  wantCategory String?
+  wantDealType String?
+  needLargeTruck Boolean @default(false)
+  importance  Int      @default(3)
+  channel     String?  // 유입경로
+  stage       String   @default("신규 문의")
+  lastConsultAt DateTime?
+  nextContactAt DateTime?
+  memo        String?
+  isTestData  Boolean  @default(false)
+  assigneeId  Int?
+  assignee    User?    @relation("ClientAssignee", fields: [assigneeId], references: [id])
+  createdById Int?
+  updatedById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  requirements ClientRequirement[]
+  consultations Consultation[]
+  matches     PropertyClientMatch[]
+  visits      PropertyVisit[]
+  tasks       Task[]
+  workLogs    WorkLog[]
+  events      CalendarEvent[]
+  contracts   Contract[]
+  @@index([phoneNorm])
+}
+model ClientRequirement {
+  id       Int    @id @default(autoincrement())
+  clientId Int
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  key      String
+  value    String
+  required Boolean @default(false)
+}
+model Consultation {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  at        DateTime @default(now())
+  channel   String   @default("전화")
+  content   String
+  result    String?
+  nextAction String?
+  createdById Int?
+}
+model PropertyClientMatch {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  clientId   Int
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  score      Int
+  reasons    Json
+  mismatches Json
+  mustFail   Boolean  @default(false)
+  saved      Boolean  @default(false) // 고객에게 추천 저장
+  recommendedAt DateTime?
+  createdAt  DateTime @default(now())
+  @@unique([propertyId, clientId])
+}
+model PropertyVisit {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id])
+  clientId   Int?
+  client     Client?  @relation(fields: [clientId], references: [id])
+  visitedAt  DateTime
+  resultRecorded Boolean @default(false)
+  result     String?
+}
+
+// ── 업무 ─────────────────────────────────────────────
+model Task {
+  id        Int      @id @default(autoincrement())
+  title     String
+  note      String?
+  dueDate   DateTime?
+  priority  Int      @default(2)
+  done      Boolean  @default(false)
+  needsCheck Boolean @default(false)
+  assigneeId Int?
+  assignee  User?    @relation(fields: [assigneeId], references: [id])
+  clientId  Int?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  propertyId Int?
+  isTestData Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model WorkLog {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  clientId  Int?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  propertyId Int?
+  property  Property? @relation(fields: [propertyId], references: [id])
+  content   String
+  result    String?
+  followUp  String?
+  done      Boolean  @default(true)
+  needsCheck Boolean @default(false)
+  isTestData Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+model CalendarEvent {
+  id        Int      @id @default(autoincrement())
+  title     String
+  type      String
+  startAt   DateTime
+  endAt     DateTime?
+  repeat    String?
+  remindMinutes Int?
+  done      Boolean  @default(false)
+  assigneeId Int?
+  assignee  User?    @relation(fields: [assigneeId], references: [id])
+  clientId  Int?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  propertyId Int?
+  property  Property? @relation(fields: [propertyId], references: [id])
+  externalId String? // Google Calendar
+  isTestData Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ── 계약/정산 ─────────────────────────────────────────
+model Contract {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  propertyId Int
+  property  Property @relation(fields: [propertyId], references: [id])
+  clientId  Int?
+  client    Client?  @relation(fields: [clientId], references: [id])
+  parties   String?
+  agentId   Int?
+  contractDate DateTime?
+  downPayment BigInt?
+  interimPayment BigInt?
+  balance   BigInt?
+  balanceDate DateTime?
+  dealAmount BigInt?
+  agreedFee BigInt?
+  receivedFee BigInt?
+  receivedAt DateTime?
+  status    String   @default("협상")
+  documents String?
+  specialTerms String?
+  isTestData Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payments  ContractPayment[]
+  settlements Settlement[]
+}
+model ContractPayment {
+  id        Int      @id @default(autoincrement())
+  contractId Int
+  contract  Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  kind      String   // 계약금/중도금/잔금
+  amount    BigInt
+  dueDate   DateTime?
+  paidAt    DateTime?
+}
+model CommissionRule {
+  id        Int      @id @default(autoincrement())
+  name      String
+  agentRatio Float
+  officeRatio Float
+  expenseRatio Float @default(0)
+  isDefault Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+model Settlement {
+  id        Int      @id @default(autoincrement())
+  contractId Int
+  contract  Contract @relation(fields: [contractId], references: [id])
+  agentId   Int?
+  receivedFee BigInt
+  ratio     Float
+  expectedAmount BigInt
+  paidAmount BigInt  @default(0)
+  note      String?
+  history   Json     @default("[]")
+  updatedAt DateTime @updatedAt
+}
+
+// ── 분석/콘텐츠 ───────────────────────────────────────
+model PropertyAnalysis {
+  id        Int      @id @default(autoincrement())
+  propertyId Int
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  type      String
+  inputs    Json
+  result    Json
+  asOf      DateTime @default(now())
+  createdById Int?
+  sources   AnalysisSource[]
+}
+model AnalysisSource {
+  id         Int    @id @default(autoincrement())
+  analysisId Int
+  analysis   PropertyAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  name       String
+  kind       String // 공식/사용자제공
+  asOf       DateTime?
+  verified   Boolean @default(false)
+}
+model ContentProject {
+  id        Int      @id @default(autoincrement())
+  title     String
+  channel   String
+  topic     String?
+  status    String   @default("아이디어")
+  propertyId Int?
+  property  Property? @relation(fields: [propertyId], references: [id])
+  scheduledAt DateTime?
+  publishedUrl String?
+  isTestData Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  versions  ContentVersion[]
+  publications ContentPublication[]
+}
+model ContentVersion {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  project   ContentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version   Int
+  body      String
+  createdAt DateTime @default(now())
+}
+model ContentPublication {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  project   ContentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String?
+  publishedAt DateTime?
+  views     Int?
+  inquiries Int?
+}
+model ChannelConnection {
+  id       Int    @id @default(autoincrement())
+  channel  String @unique
+  status   String @default("미연결")
+  note     String?
+}
+
+// ── 시스템 ───────────────────────────────────────────
+model AiBriefing {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      String   // YYYY-MM-DD (KST)
+  payload   Json
+  createdAt DateTime @default(now())
+  @@unique([userId, date])
+}
+model AiRecommendation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      String
+  kind      String
+  title     String
+  reason    String
+  importance Int
+  clientId  Int?
+  propertyId Int?
+  taskId    Int?
+  status    String   @default("대기") // 대기/완료/연기
+  postponedTo DateTime?
+  createdAt DateTime @default(now())
+}
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // view/create/update/delete/export/login
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+  @@index([entity, createdAt])
+}
+model OrganizationSetting {
+  key       String @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
