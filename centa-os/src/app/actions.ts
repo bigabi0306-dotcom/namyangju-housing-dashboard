@@ -7,6 +7,7 @@ import { createSession, destroySession, requireUser, verifyPassword } from '@/li
 import { audit } from '@/lib/audit';
 import { deleteImageFile } from '@/lib/storage';
 import { parseCoordPair } from '@/lib/geo';
+import { tmpCode, codeFor } from '@/lib/codes';
 import { normPhone, parseKRW, pyeongToM2, kstDateStr } from '@/lib/format';
 import { matchScore, DEFAULT_WEIGHTS, type MatchWeights } from '@/lib/matching';
 
@@ -34,10 +35,6 @@ const str = (v: FormDataEntryValue | null) => { const s = String(v ?? '').trim()
 /** 면적: ㎡ 필드가 우선, 없으면 평 필드를 ㎡로 환산 */
 const area = (fd: FormData, k: string) => { const m = num(fd.get(k)); if (m !== null) return m; const p = num(fd.get(k + 'Py')); return p !== null ? Math.round(pyeongToM2(p) * 100) / 100 : null; };
 
-async function nextCode(prefix: string, table: 'property' | 'client' | 'contract') {
-  const n = await (db[table] as any).count();
-  return `${prefix}-${String(n + 1).padStart(6, '0')}`;
-}
 
 // ── 매물 ──
 const PropSchema = z.object({ title: z.string().min(1, '매물명을 입력하세요'), category: z.string().min(1), dealType: z.string().min(1), region: z.string().min(1, '지역을 입력하세요'), address: z.string().min(1, '주소를 입력하세요') });
@@ -75,7 +72,8 @@ export async function saveProperty(id: number | null, _: unknown, fd: FormData) 
     // 중복 검사: 동일 주소 + 지번 + 거래유형
     const dup = await db.property.findFirst({ where: { address: data.address, lotNumber: data.lotNumber, dealType: data.dealType } });
     if (dup && fd.get('allowDup') !== 'on') return { error: `중복 의심: 같은 주소·지번·거래유형의 매물 ${dup.code}(${dup.title})이 이미 있습니다. 그래도 등록하려면 '중복 허용'을 체크하세요.`, dup: true };
-    const p = await db.property.create({ data: { ...data, code: await nextCode('CT', 'property'), assigneeId: me.id, createdById: me.id } });
+    const p = await db.property.create({ data: { ...data, code: tmpCode(), assigneeId: me.id, createdById: me.id } });
+    await db.property.update({ where: { id: p.id }, data: { code: codeFor('CT', p.id) } });
     pid = p.id;
     await db.propertyPriceHistory.create({ data: { propertyId: p.id, oldPrice: null, newPrice: data.price, informed: true } });
     await audit(me.id, 'create', 'property', p.id);
@@ -88,6 +86,9 @@ const can_owner = (role: string) => role === 'OWNER' || role === 'AGENT';
 export async function deleteProperty(id: number) {
   const me = await requireUser('property.write');
   if (me.role !== 'OWNER') throw new Error('삭제는 대표 관리자만 가능합니다.');
+  // 계약·현장방문 기록이 연결된 매물은 DB가 삭제를 막으므로, 오류 화면 대신 이유를 알려준다
+  const [nContracts, nVisits] = await Promise.all([db.contract.count({ where: { propertyId: id } }), db.propertyVisit.count({ where: { propertyId: id } })]);
+  if (nContracts || nVisits) redirect(`/properties/${id}?err=linked&c=${nContracts}&v=${nVisits}`);
   const imgs = await db.propertyImage.findMany({ where: { propertyId: id }, select: { url: true } });
   await db.property.delete({ where: { id } });
   for (const im of imgs) await deleteImageFile(im.url); // 업로드 파일도 함께 정리
@@ -126,7 +127,8 @@ export async function saveClient(id: number | null, _: unknown, fd: FormData) {
   let cid = id;
   if (id) { await db.client.update({ where: { id }, data }); await audit(me.id, 'update', 'client', id); }
   else {
-    const c = await db.client.create({ data: { ...data, code: await nextCode('CL', 'client'), assigneeId: me.id, createdById: me.id } });
+    const c = await db.client.create({ data: { ...data, code: tmpCode(), assigneeId: me.id, createdById: me.id } });
+    await db.client.update({ where: { id: c.id }, data: { code: codeFor('CL', c.id) } });
     cid = c.id; await audit(me.id, 'create', 'client', c.id);
   }
   await recomputeMatchesForClient(cid!);

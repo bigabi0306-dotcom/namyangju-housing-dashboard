@@ -11,8 +11,9 @@ import { UploadForm } from '@/components/gallery';
 import { PropertyMap } from '@/components/property-map-lazy';
 import { setImagePublic, removeImage } from '@/app/actions-upload';
 
-export default async function PropertyDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function PropertyDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ err?: string; c?: string; v?: string }> }) {
   const me = await requireUser('property.read');
+  const sp = await searchParams;
   const id = Number((await params).id);
   const p = Number.isInteger(id) ? await db.property.findUnique({ where: { id }, include: { images: { orderBy: { id: 'asc' } }, priceHistory: { orderBy: { changedAt: 'desc' } }, matches: { include: { client: true }, where: { mustFail: false, score: { gte: 50 } }, orderBy: { score: 'desc' }, take: 8 }, sources: true } }) : null;
   if (!p) notFound();
@@ -27,6 +28,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const canEdit = can(me.role, 'property.write');
   return (
     <div className="space-y-4">
+      {sp.err === 'linked' && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">이 매물은 삭제할 수 없습니다. 연결된 기록이 있습니다 — 계약 {Number(sp.c) || 0}건, 현장방문 {Number(sp.v) || 0}건. 기록 보존을 위해 삭제하지 말고 상태를 &apos;보류&apos;로 바꾸세요.</p>}
       <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="text-xs text-gray-500">{p.code}{p.sourceId && ` · 원본 ${p.sourceSystem}:${p.sourceId}`}</div><h1 className="text-xl font-bold">{p.title}</h1></div>
         <div className="flex gap-2">{can(me.role, 'analysis.write') && <Link href={`/analysis?pid=${p.id}`} className="btn">AI 물건분석</Link>}<span className="badge">{p.status}</span>{me.role === 'OWNER' && <form action={deleteProperty.bind(null, p.id)}><button className="btn-ghost text-red-600">삭제</button></form>}</div></div>
       <div className="grid gap-3 sm:grid-cols-3">

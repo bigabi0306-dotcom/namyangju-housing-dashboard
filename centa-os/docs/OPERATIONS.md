@@ -80,6 +80,8 @@ Node.js 22와 PostgreSQL 16 설치 후 `README.md`의 "실행" 절차를 따릅�
 ## 7. 문제 해결
 | 증상 | 조치 |
 |---|---|
+| 화면에 "문제가 발생했습니다 / 오류 번호: 숫자" | 직원에게 오류 번호를 받아 `docker compose logs app \| grep 오류번호` 로 서버 로그의 원인을 찾습니다(화면에는 내부 정보가 나오지 않습니다) |
+| 매물 삭제가 안 됨 | 계약·현장방문 기록이 연결된 매물은 보존을 위해 삭제되지 않습니다. 상태를 '보류'로 바꾸세요 |
 | 접속 불가 | `docker compose ps`, `docker compose logs app --tail 100` |
 | `/api/health` 503 | DB 컨테이너 상태 확인(`docker compose logs db`), `DB_PASSWORD` 일치 여부 |
 | 로그인 잠김 | 10분 대기 |

@@ -2,6 +2,7 @@ import { db } from './db';
 import { parseCSV } from './csv';
 import { parseKRW } from './format';
 import { parseCoordPair } from './geo';
+import { tmpCode, codeFor } from './codes';
 
 const ALIAS: Record<string, string> = {
   원본매물번호: 'sourceId', 매물번호: 'sourceId', id: 'sourceId', 매물명: 'title', 제목: 'title', 종류: 'category', 매물종류: 'category', 거래유형: 'dealType',
@@ -28,7 +29,6 @@ export async function importProperties(csv: string, system: string, fullSync: bo
   const log = dryRun ? null : await db.propertySyncLog.create({ data: { system, method: 'CSV' } });
   const rows = parseCSV(csv).map(norm);
   const seen = new Set<string>();
-  let n = await db.property.count();
   for (const [i, r] of rows.entries()) {
     try {
       if (!r.sourceId || !r.title || !r.address) throw new Error('원본매물번호·매물명·주소는 필수입니다');
@@ -60,7 +60,8 @@ export async function importProperties(csv: string, system: string, fullSync: bo
         await db.property.update({ where: { id: dup.id }, data: { sourceId: r.sourceId, sourceSystem: system } });
         res.duplicates++; continue;
       }
-      const p = await db.property.create({ data: { ...f, code: `CT-${String(++n).padStart(6, '0')}`, sourceId: r.sourceId, sourceSystem: system, createdById: userId } });
+      const p = await db.property.create({ data: { ...f, code: tmpCode(), sourceId: r.sourceId, sourceSystem: system, createdById: userId } });
+      await db.property.update({ where: { id: p.id }, data: { code: codeFor('CT', p.id) } });
       await db.propertySource.create({ data: { propertyId: p.id, system, externalId: r.sourceId, rawJson: r } });
       await db.propertyPriceHistory.create({ data: { propertyId: p.id, newPrice: f.price, informed: true } });
       res.added++;

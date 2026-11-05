@@ -34,6 +34,24 @@ import { importProperties } from '../src/lib/import';
   const { decodeCsv } = await import('../src/lib/import');
   const euc = new Uint8Array([0xb8, 0xc5, 0xb9, 0xb0]); // '매물' (CP949)
   assert.equal(decodeCsv(euc.buffer), '매물');
+  // 번호 생성: 중간 매물·고객을 삭제한 뒤 새로 등록해도 번호가 중복되지 않음 ('건수+1' 방식 회귀 방지)
+  const sysN = 'IT-NUM-' + Date.now();
+  await importProperties('원본매물번호,매물명,주소\nN1,번호1,경기 번호리 1\nN2,번호2,경기 번호리 2\nN3,번호3,경기 번호리 3\n', sysN, false, admin.id);
+  const mid = await db.property.findFirstOrThrow({ where: { sourceSystem: sysN, sourceId: 'N2' } });
+  await db.property.delete({ where: { id: mid.id } });
+  const rn = await importProperties('원본매물번호,매물명,주소\nN4,번호4,경기 번호리 4\nN5,번호5,경기 번호리 5\nN6,번호6,경기 번호리 6\n', sysN, false, admin.id);
+  assert.equal(rn.added, 3); assert.equal(rn.errors.length, 0, rn.errors.join());
+  const codes = (await db.property.findMany({ where: { sourceSystem: sysN }, select: { id: true, code: true } }));
+  assert.equal(new Set(codes.map((c) => c.code)).size, codes.length, '번호 중복'); assert.ok(codes.every((c) => c.code === `CT-${String(c.id).padStart(6, '0')}`), '번호는 id 기반');
+  await db.property.deleteMany({ where: { sourceSystem: sysN } });
+  const { importClients } = await import('../src/lib/import-clients');
+  const tagN = String(Date.now()).slice(-6);
+  const mkCsv = (ph: string[]) => '고객명,연락처\n' + ph.map((x, i) => `번호고객${i},010-7${tagN.slice(0, 3)}-${tagN.slice(3)}${x}`).join('\n') + '\n';
+  await importClients(mkCsv(['1', '2', '3']), admin.id, false);
+  const mc = await db.client.findFirstOrThrow({ where: { name: '번호고객1' } }); await db.client.delete({ where: { id: mc.id } });
+  const rc2 = await importClients(mkCsv(['4', '5']), admin.id, false); assert.equal(rc2.errors.length, 0, rc2.errors.join()); assert.equal(rc2.added, 2);
+  const ccodes = await db.client.findMany({ where: { name: { startsWith: '번호고객' } }, select: { code: true } }); assert.equal(new Set(ccodes.map((c) => c.code)).size, ccodes.length, '고객 번호 중복');
+  await db.client.deleteMany({ where: { name: { startsWith: '번호고객' } } });
   // CSV 좌표: 위도/경도 열 반영, 좌표 없는 재가져오기는 수동 입력값을 지우지 않음, 잘못된 좌표는 행 오류
   const sysG = 'IT-GEO-' + Date.now();
   const g1 = await importProperties('원본매물번호,매물명,주소,위도,경도\nG1,좌표매물,경기 남양주시 좌표리 1,37.65,127.2\nG2,바뀐좌표,경기 남양주시 좌표리 2,127.2,37.65\n', sysG, false, admin.id);
@@ -44,7 +62,6 @@ import { importProperties } from '../src/lib/import';
   const pg2 = await db.property.findUniqueOrThrow({ where: { id: pg.id } }); assert.equal(pg2.lat, 37.7, '좌표 열이 없는 재가져오기가 수동 좌표를 덮어쓰면 안 됨');
   await db.property.deleteMany({ where: { sourceSystem: sysG } });
   // 고객 CSV 이전: 중복 연락처 건너뜀·검증·미리보기
-  const { importClients } = await import('../src/lib/import-clients');
   const tag = String(Date.now()).slice(-6);
   const csvC = `고객명,연락처,구분,단계\n이전A,010-9${tag.slice(0, 3)}-${tag.slice(3)}1,매수,상담\n이전A중복,010-9${tag.slice(0, 3)}-${tag.slice(3)}1,매도,\n,010-1111-2222,매수,\n이전B,12,매수,\n이전C,010-8${tag.slice(0, 3)}-${tag.slice(3)}2,외계인,\n`;
   const beforeC = await db.client.count();

@@ -1,6 +1,7 @@
 import { db } from './db';
 import { parseCSV } from './csv';
 import { normPhone } from './format';
+import { tmpCode, codeFor } from './codes';
 import { CLIENT_KINDS, STAGES } from './constants';
 
 const ALIAS: Record<string, string> = { 고객명: 'name', 이름: 'name', 연락처: 'phone', 전화번호: 'phone', 휴대폰: 'phone', 구분: 'kind', 고객구분: 'kind', 회사명: 'company', 회사: 'company', 희망지역: 'wantRegion', 유입경로: 'channel', 메모: 'memo', 단계: 'stage', 상담상태: 'stage' };
@@ -10,7 +11,6 @@ export async function importClients(csv: string, userId: number, dryRun: boolean
   const res: ClientImportResult = { added: 0, duplicates: 0, errors: [] };
   const rows = parseCSV(csv).map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [ALIAS[k.replace(/\s/g, '')] ?? k, v])));
   const seen = new Set<string>();
-  let n = (await db.client.findFirst({ orderBy: { id: 'desc' }, select: { id: true } }))?.id ?? 0;
   for (const [i, r] of rows.entries()) {
     const line = `${i + 2}행`;
     const phoneNorm = normPhone(r.phone ?? '');
@@ -20,7 +20,7 @@ export async function importClients(csv: string, userId: number, dryRun: boolean
     if (r.stage && !STAGES.includes(r.stage)) { res.errors.push(`${line}: 단계는 ${STAGES.join('/')} 중 하나여야 합니다 (${r.stage})`); continue; }
     if (seen.has(phoneNorm) || (await db.client.findFirst({ where: { phoneNorm }, select: { id: true } }))) { res.duplicates++; seen.add(phoneNorm); continue; }
     seen.add(phoneNorm);
-    if (!dryRun) { n++; await db.client.create({ data: { code: `CL-${String(n).padStart(6, '0')}`, name: r.name, phone: r.phone, phoneNorm, kind: r.kind || '매수', company: r.company || null, wantRegion: r.wantRegion || null, channel: r.channel || null, stage: r.stage || '신규 문의', memo: r.memo || null, assigneeId: userId, createdById: userId } }); }
+    if (!dryRun) { const c = await db.client.create({ data: { code: tmpCode(), name: r.name, phone: r.phone, phoneNorm, kind: r.kind || '매수', company: r.company || null, wantRegion: r.wantRegion || null, channel: r.channel || null, stage: r.stage || '신규 문의', memo: r.memo || null, assigneeId: userId, createdById: userId } }); await db.client.update({ where: { id: c.id }, data: { code: codeFor('CL', c.id) } }); }
     res.added++;
   }
   return res;
