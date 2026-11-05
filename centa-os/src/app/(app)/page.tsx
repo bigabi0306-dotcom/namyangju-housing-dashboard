@@ -8,26 +8,36 @@ import { briefingAction } from '../actions';
 import { Check, CalendarClock } from 'lucide-react';
 import { computeStats } from '@/lib/stats';
 import { BarList, MonthBars } from '@/components/charts';
+import { REGIONS } from '@/lib/constants';
 
 const IMP = { 3: ['높음', 'bg-red-100 text-red-700'], 2: ['보통', 'bg-amber-100 text-amber-700'], 1: ['낮음', 'bg-gray-100 text-gray-600'] } as const;
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ m?: string; region?: string; agent?: string }> }) {
   const me = await requireUser();
+  const sp = await searchParams;
+  const months = [3, 6, 12].includes(Number(sp.m)) ? Number(sp.m) : 6;
+  const region = REGIONS.includes(sp.region ?? '') ? sp.region : undefined;
+  const agentId = sp.agent === 'me' ? me.id : /^\d+$/.test(sp.agent ?? '') ? Number(sp.agent) : undefined;
+  const filtered = !!(region || agentId || months !== 6);
+  const pw: any = { ...(region ? { region } : {}), ...(agentId ? { assigneeId: agentId } : {}) };        // 매물
+  const cw: any = agentId ? { assigneeId: agentId } : {};                                                // 고객
+  const kw: any = { ...(agentId ? { agentId } : {}), ...(region ? { property: { region } } : {}) };      // 계약
+  const people = await db.user.findMany({ where: { active: true }, select: { id: true, name: true } });
   const b = await buildBriefing(me);
-  const st = await computeStats({ months: 6, withFee: can(me.role, 'settlement.read') });
+  const st = await computeStats({ months, region, agentId, withFee: can(me.role, 'settlement.read') });
   const monthStart = new Date(`${b.date.slice(0, 7)}-01T00:00:00+09:00`);
   const [total, active, newThis, priceThis, closed, clients, newConsult, contracts, fee, taskAll, taskDone, contentPub, byCat, byRegion, recentClients] = await Promise.all([
-    db.property.count(), db.property.count({ where: { status: { in: ['상담중', '현장안내', '협의중', '가계약'] } } }),
-    db.property.count({ where: { createdAt: { gte: monthStart } } }),
-    db.propertyPriceHistory.count({ where: { changedAt: { gte: monthStart }, oldPrice: { not: null } } }),
-    db.property.count({ where: { status: { in: ['계약완료', '잔금완료'] } } }),
-    db.client.count(), db.consultation.count({ where: { at: { gte: monthStart } } }),
-    db.contract.count({ where: { status: { notIn: ['잔금완료', '취소'] } } }),
-    can(me.role, "settlement.read") ? db.contract.aggregate({ _sum: { receivedFee: true }, where: { receivedAt: { gte: monthStart } } }) : null,
-    db.task.count(), db.task.count({ where: { done: true } }),
+    db.property.count({ where: pw }), db.property.count({ where: { ...pw, status: { in: ['상담중', '현장안내', '협의중', '가계약'] } } }),
+    db.property.count({ where: { ...pw, createdAt: { gte: monthStart } } }),
+    db.propertyPriceHistory.count({ where: { changedAt: { gte: monthStart }, oldPrice: { not: null }, ...(Object.keys(pw).length ? { property: pw } : {}) } }),
+    db.property.count({ where: { ...pw, status: { in: ['계약완료', '잔금완료'] } } }),
+    db.client.count({ where: cw }), db.consultation.count({ where: { at: { gte: monthStart }, ...(agentId ? { client: cw } : {}) } }),
+    db.contract.count({ where: { ...kw, status: { notIn: ['잔금완료', '취소'] } } }),
+    can(me.role, "settlement.read") ? db.contract.aggregate({ _sum: { receivedFee: true }, where: { ...kw, receivedAt: { gte: monthStart } } }) : null,
+    db.task.count({ where: agentId ? { assigneeId: agentId } : {} }), db.task.count({ where: { done: true, ...(agentId ? { assigneeId: agentId } : {}) } }),
     db.contentProject.count({ where: { status: '발행완료' } }),
-    db.property.groupBy({ by: ['category'], _count: true }), db.property.groupBy({ by: ['region'], _count: true }),
-    db.client.findMany({ orderBy: { updatedAt: 'desc' }, take: 5 }),
+    db.property.groupBy({ by: ['category'], where: pw, _count: true }), db.property.groupBy({ by: ['region'], where: pw, _count: true }),
+    db.client.findMany({ where: cw, orderBy: { updatedAt: 'desc' }, take: 5 }),
   ]);
   const kpis: [string, string | number][] = [
     ['전체 매물', total], ['거래 진행 매물', active], ['이달 신규 매물', newThis], ['이달 가격 변경', priceThis], ['거래 완료 매물', closed],
@@ -62,6 +72,12 @@ export default async function Home() {
           </li>))}</ul>
       </section>
 
+      <form className="card flex flex-wrap items-end gap-2" aria-label="대시보드 필터"><b className="pb-2 text-sm">현황 필터</b>
+        <label className="text-xs">기간(차트)<select name="m" defaultValue={months} className="input !w-28">{[3, 6, 12].map((m) => <option key={m} value={m}>최근 {m}개월</option>)}</select></label>
+        <label className="text-xs">지역<select name="region" defaultValue={region ?? ''} className="input !w-32"><option value="">전체</option>{REGIONS.map((r) => <option key={r}>{r}</option>)}</select></label>
+        <label className="text-xs">담당자<select name="agent" defaultValue={sp.agent ?? ''} className="input !w-32"><option value="">전체</option><option value="me">내 담당</option>{people.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+        <button className="btn">적용</button>{filtered && <Link href="/" className="btn-ghost">초기화</Link>}
+        {filtered && <span className="text-xs text-amber-700">필터 적용 중 — 아래 KPI·차트는 필터 기준이며, AI 브리핑(위)은 항상 전체 업무 기준입니다.</span>}</form>
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {kpis.map(([k, v]) => <div key={k} className="card"><div className="text-xs text-gray-500">{k}</div><div className="mt-1 text-xl font-bold">{v}</div></div>)}
       </section>
