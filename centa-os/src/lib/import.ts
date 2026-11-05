@@ -1,11 +1,12 @@
 import { db } from './db';
 import { parseCSV } from './csv';
 import { parseKRW } from './format';
+import { parseCoordPair } from './geo';
 
 const ALIAS: Record<string, string> = {
   원본매물번호: 'sourceId', 매물번호: 'sourceId', id: 'sourceId', 매물명: 'title', 제목: 'title', 종류: 'category', 매물종류: 'category', 거래유형: 'dealType',
   상태: 'status', 지역: 'region', 주소: 'address', 지번: 'lotNumber', 가격: 'price', 매매가: 'price', 보증금: 'deposit', 월세: 'monthlyRent', 월차임: 'monthlyRent',
-  토지면적: 'landAreaM2', 면적: 'landAreaM2', 용도지역: 'zoning', 지목: 'landCategory',
+  토지면적: 'landAreaM2', 위도: 'lat', 경도: 'lng', 면적: 'landAreaM2', 용도지역: 'zoning', 지목: 'landCategory',
 };
 const norm = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [ALIAS[k.replace(/\s/g, '')] ?? k, v]));
 const won = (s?: string) => { if (!s) return null; const n = parseKRW(s); return n === null ? null : BigInt(n); };
@@ -32,10 +33,11 @@ export async function importProperties(csv: string, system: string, fullSync: bo
     try {
       if (!r.sourceId || !r.title || !r.address) throw new Error('원본매물번호·매물명·주소는 필수입니다');
       seen.add(r.sourceId);
+      const coord = parseCoordPair(r.lat, r.lng); if (!coord.ok) throw new Error(coord.error);
       const f = {
         title: r.title, category: r.category || '기타', dealType: r.dealType || '매매', region: r.region || '기타', address: r.address, lotNumber: r.lotNumber || null,
         price: won(r.price), deposit: won(r.deposit), monthlyRent: won(r.monthlyRent), landAreaM2: r.landAreaM2 ? Number(r.landAreaM2.replace(/,/g, '')) : null,
-        zoning: r.zoning || null, landCategory: r.landCategory || null, ...(r.status ? { status: r.status } : {}),
+        zoning: r.zoning || null, landCategory: r.landCategory || null, ...(r.status ? { status: r.status } : {}), ...(coord.lat != null ? { lat: coord.lat, lng: coord.lng } : {}), // 좌표가 없으면 기존 수동 입력값 유지
       };
       const src = await db.propertySource.findUnique({ where: { system_externalId: { system, externalId: r.sourceId } }, include: { property: true } });
       if (dryRun) {

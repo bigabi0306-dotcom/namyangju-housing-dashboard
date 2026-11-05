@@ -193,3 +193,10 @@ test('AI 제공자 선택', () => {
   assert.equal(pickProvider({ ANTHROPIC_API_KEY: 'y', CONTENT_AI_PROVIDER: 'gemini' }), null, '지정한 제공자의 키가 없으면 사용 불가');
   assert.ok(pickProvider({ GEMINI_API_KEY: 'x' })!.note.includes('약관'));
 });
+import { parseCoordPair } from '../src/lib/geo';
+test('좌표 검증: 빈 값·한쪽만·바뀐 순서·범위 밖', () => {
+  assert.deepEqual(parseCoordPair('', ''), { ok: true, lat: null, lng: null });
+  assert.deepEqual(parseCoordPair('37.6360123', '127.2165'), { ok: true, lat: 37.636012, lng: 127.2165 });
+  assert.match((parseCoordPair('37.6', '') as any).error, /함께/); assert.match((parseCoordPair('abc', '127') as any).error, /숫자/);
+  assert.match((parseCoordPair('127.2', '37.6') as any).error, /바뀐/); assert.match((parseCoordPair('35.0', '140.0') as any).error, /범위/); assert.match((parseCoordPair('0', '0') as any).error, /범위/);
+});

@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { createSession, destroySession, requireUser, verifyPassword } from '@/lib/auth';
 import { audit } from '@/lib/audit';
 import { deleteImageFile } from '@/lib/storage';
+import { parseCoordPair } from '@/lib/geo';
 import { normPhone, parseKRW, pyeongToM2, kstDateStr } from '@/lib/format';
 import { matchScore, DEFAULT_WEIGHTS, type MatchWeights } from '@/lib/matching';
 
@@ -44,9 +45,12 @@ export async function saveProperty(id: number | null, _: unknown, fd: FormData) 
   const me = await requireUser('property.write');
   const base = PropSchema.safeParse(Object.fromEntries(fd));
   if (!base.success) return { error: base.error.issues[0].message };
+  const coord = parseCoordPair(String(fd.get('lat') ?? ''), String(fd.get('lng') ?? ''));
+  if (!coord.ok) return { error: coord.error };
   let data;
   try {
     data = {
+      lat: coord.lat, lng: coord.lng,
       ...base.data, subCategory: str(fd.get('subCategory')), status: String(fd.get('status') || '신규'),
       lotNumber: str(fd.get('lotNumber')), publicAddress: str(fd.get('publicAddress')), addressDetail: str(fd.get('addressDetail')),
       landAreaM2: area(fd, 'landAreaM2'), totalFloorAreaM2: area(fd, 'totalFloorAreaM2'), buildingAreaM2: area(fd, 'buildingAreaM2'),

@@ -8,6 +8,7 @@ import { PropertyForm } from '../../../../components/property-form';
 import { deleteProperty, saveProperty } from '../../../../app/actions';
 import { formatKRW, formatArea, fmtDate } from '../../../../lib/format';
 import { UploadForm } from '@/components/gallery';
+import { PropertyMap } from '@/components/property-map-lazy';
 import { setImagePublic, removeImage } from '@/app/actions-upload';
 
 export default async function PropertyDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +33,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         <div className="card"><h2 className="mb-2 font-bold">자동 매칭 고객 (적합도 50점 이상, 필수조건 충족)</h2>
           <ul className="space-y-1 text-sm">{p.matches.map((m) => <li key={m.id}><Link href={`/clients/${m.clientId}`} className="hover:text-brand">{m.client.name}</Link> <b>{m.score}점</b></li>)}{p.matches.length === 0 && <li className="text-gray-500">해당 고객이 없습니다.</li>}</ul></div>
       </div>
+      {p.lat != null && p.lng != null && <div className="card space-y-2"><h2 className="font-bold">위치</h2><PropertyMap items={[{ id: p.id, title: p.title, code: p.code, lat: p.lat, lng: p.lng, price: formatKRW(p.price ?? p.deposit), category: p.category, status: p.status }]} height={240} label="매물 위치 지도" /></div>}
       <div className="card space-y-2"><h2 className="font-bold">사진·드론 ({p.images.length})</h2>
         {p.images.length > 0 && <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">{p.images.map((im) => <li key={im.id} className="space-y-1 rounded-lg border p-1">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`/api/files/image/${im.id}`} alt={`${p.title} ${im.kind === 'drone' ? '드론' : '사진'}`} loading="lazy" className="h-28 w-full rounded object-cover" />
           <div className="flex items-center justify-between text-xs"><span>{im.kind === 'drone' ? '드론' : '사진'} · {im.isPublic ? '공개' : '비공개'}</span>{canEdit && <span className="flex gap-1"><form action={setImagePublic.bind(null, im.id, !im.isPublic)}><button className="text-brand underline">{im.isPublic ? '비공개로' : '공개로'}</button></form><form action={removeImage.bind(null, im.id)}><button className="text-red-600 underline">삭제</button></form></span>}</div></li>)}</ul>}

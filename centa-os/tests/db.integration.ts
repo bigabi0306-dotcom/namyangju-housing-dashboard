@@ -34,6 +34,15 @@ import { importProperties } from '../src/lib/import';
   const { decodeCsv } = await import('../src/lib/import');
   const euc = new Uint8Array([0xb8, 0xc5, 0xb9, 0xb0]); // '매물' (CP949)
   assert.equal(decodeCsv(euc.buffer), '매물');
+  // CSV 좌표: 위도/경도 열 반영, 좌표 없는 재가져오기는 수동 입력값을 지우지 않음, 잘못된 좌표는 행 오류
+  const sysG = 'IT-GEO-' + Date.now();
+  const g1 = await importProperties('원본매물번호,매물명,주소,위도,경도\nG1,좌표매물,경기 남양주시 좌표리 1,37.65,127.2\nG2,바뀐좌표,경기 남양주시 좌표리 2,127.2,37.65\n', sysG, false, admin.id);
+  assert.equal(g1.added, 1); assert.equal(g1.errors.length, 1); assert.ok(g1.errors[0].includes('바뀐'));
+  const pg = await db.property.findFirstOrThrow({ where: { sourceSystem: sysG, sourceId: 'G1' } }); assert.equal(pg.lat, 37.65); assert.equal(pg.lng, 127.2);
+  await db.property.update({ where: { id: pg.id }, data: { lat: 37.7, lng: 127.3 } }); // 수동 보정
+  await importProperties('원본매물번호,매물명,주소\nG1,좌표매물,경기 남양주시 좌표리 1\n', sysG, false, admin.id);
+  const pg2 = await db.property.findUniqueOrThrow({ where: { id: pg.id } }); assert.equal(pg2.lat, 37.7, '좌표 열이 없는 재가져오기가 수동 좌표를 덮어쓰면 안 됨');
+  await db.property.deleteMany({ where: { sourceSystem: sysG } });
   // 고객 CSV 이전: 중복 연락처 건너뜀·검증·미리보기
   const { importClients } = await import('../src/lib/import-clients');
   const tag = String(Date.now()).slice(-6);

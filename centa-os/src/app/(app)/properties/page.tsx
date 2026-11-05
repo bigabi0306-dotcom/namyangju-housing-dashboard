@@ -7,6 +7,7 @@ import { formatKRW, formatArea } from '@/lib/format';
 import { buildPropertyWhere, withFavorites, toQueryString, type PropSP } from '@/lib/property-query';
 import { toggleFavorite, saveSearch, deleteSearch } from '@/app/actions-property-tools';
 import { Star } from 'lucide-react';
+import { PropertyMap } from '@/components/property-map-lazy';
 
 export default async function Properties({ searchParams }: { searchParams: Promise<PropSP> }) {
   const me = await requireUser('property.read');
@@ -19,7 +20,8 @@ export default async function Properties({ searchParams }: { searchParams: Promi
   const favIds = new Set(favs.map((f) => f.propertyId));
   let w = buildPropertyWhere(sp, me.id); if (sp.fav) w = withFavorites(w, [...favIds]);
   const list = await db.property.findMany({ where: w, orderBy: { updatedAt: 'desc' }, take: 200 });
-  const view = sp.view === 'card' ? 'card' : 'table';
+  const view = sp.view === 'card' ? 'card' : sp.view === 'map' ? 'map' : 'table';
+  const mapItems = list.filter((p) => p.lat != null && p.lng != null).map((p) => ({ id: p.id, title: p.title, code: p.code, lat: p.lat as number, lng: p.lng as number, price: p.dealType === '월세' ? `${formatKRW(p.deposit)} / 월 ${formatKRW(p.monthlyRent)}` : p.dealType === '전세' ? formatKRW(p.deposit) : formatKRW(p.price), category: p.category, status: p.status }));
   const filterQs = toQueryString(sp);
   const qs = (o: Record<string, string>) => '?' + new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(filterQs)), view, ...o }).toString();
   const sel = (name: keyof PropSP, opts: string[], label: string) => (
@@ -31,7 +33,8 @@ export default async function Properties({ searchParams }: { searchParams: Promi
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2"><h1 className="text-xl font-bold">매물장 <span className="text-sm font-normal text-gray-500">({list.length}건)</span></h1>
         <div className="flex gap-2">{can(me.role, 'export') && <a href={`/properties/export?${filterQs}`} className="btn-ghost">Excel 내보내기</a>}{can(me.role, 'property.write') && <><Link href="/properties/import" className="btn-ghost">가져오기</Link><Link href="/properties/new" className="btn">+ 매물 등록</Link></>}</div></div>
-      <form className="card space-y-2">
+      <details open={view !== 'map'} className="card"><summary className="cursor-pointer text-sm font-bold">검색 조건{filterQs ? ` (${filterQs.split('&').length}개 적용 중)` : ''}</summary>
+      <form className="mt-2 space-y-2">
         <div className="flex flex-wrap items-end gap-2">
           {txt('q', '매물명·주소·번호', '!w-48')}{sel('category', CATEGORIES, '전체 종류')}{sel('dealType', DEAL_TYPES, '거래유형')}{sel('status', PROP_STATUS, '상태')}{sel('region', REGIONS, '지역')}
           {txt('pmin', '최저가 (예 3억)', '!w-36')}{txt('pmax', '최고가 (예 10억)', '!w-36')}{txt('amin', '최소㎡', '!w-24')}{txt('amax', '최대㎡', '!w-24')}
@@ -42,13 +45,14 @@ export default async function Properties({ searchParams }: { searchParams: Promi
             <select name="assignee" defaultValue={sp.assignee ?? ''} className="input !w-auto"><option value="">전체 담당자</option><option value="me">내 담당</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div></details>
         <div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-1 text-xs"><input type="checkbox" name="review" value="1" defaultChecked={!!sp.review} />확인 대기만</label><label className="flex items-center gap-1 text-xs"><input type="checkbox" name="fav" value="1" defaultChecked={!!sp.fav} />즐겨찾기만</label>
           <input type="hidden" name="view" value={view} /><button className="btn">검색</button><Link href="/properties" className="btn-ghost">초기화</Link>
-          <span className="ml-auto flex gap-1"><Link className={view === 'table' ? 'btn !py-1' : 'btn-ghost !py-1'} href={qs({ view: 'table' })}>표</Link><Link className={view === 'card' ? 'btn !py-1' : 'btn-ghost !py-1'} href={qs({ view: 'card' })}>카드</Link></span></div>
-      </form>
+          <span className="ml-auto flex gap-1"><Link className={view === 'table' ? 'btn !py-1' : 'btn-ghost !py-1'} href={qs({ view: 'table' })}>표</Link><Link className={view === 'card' ? 'btn !py-1' : 'btn-ghost !py-1'} href={qs({ view: 'card' })}>카드</Link><Link className={view === 'map' ? 'btn !py-1' : 'btn-ghost !py-1'} href={qs({ view: 'map' })}>지도</Link></span></div>
+      </form></details>
       <div className="card flex flex-wrap items-center gap-2 text-sm"><b>저장된 검색</b>
         {saved.map((s) => <span key={s.id} className="flex items-center gap-1 rounded-full bg-brand-light px-2 py-0.5"><Link href={`/properties?${s.query}`} className="hover:underline">{s.name}</Link><form action={deleteSearch.bind(null, s.id)}><button aria-label={`${s.name} 삭제`} className="text-xs text-gray-500">×</button></form></span>)}
         {saved.length === 0 && <span className="text-gray-500">없음</span>}
         {filterQs && <form action={saveSearch.bind(null, filterQs)} className="ml-auto flex gap-1"><input name="name" className="input !w-40 !py-1" placeholder="현재 조건 저장 이름" /><button className="btn-ghost !py-1">저장</button></form>}</div>
       <div className="space-y-2"><form id="compare" action="/properties/compare" />
+        {view === 'map' && <div className="space-y-2"><PropertyMap items={mapItems} height={520} /><p className="text-sm text-gray-600">지도에 표시된 매물 {mapItems.length}건{list.length - mapItems.length > 0 && <> · <b>좌표가 없어 표시되지 않은 매물 {list.length - mapItems.length}건</b> (매물 수정에서 위치를 지정하세요)</>}. 마커를 누르면 매물 정보가 표시됩니다.</p></div>}
         {view === 'table' ? (
           <div className="card overflow-x-auto !p-0"><table className="w-full min-w-[760px]"><thead className="border-b bg-gray-50"><tr><th className="th w-16">비교/★</th>{['번호', '매물명', '종류', '거래', '가격', '면적(대지)', '상태', '지역'].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
             <tbody className="divide-y">{list.map((p) => (
@@ -60,12 +64,12 @@ export default async function Properties({ searchParams }: { searchParams: Promi
                 <td className="td">{p.dealType === '월세' ? `${formatKRW(p.deposit)} / ${formatKRW(p.monthlyRent)}` : p.dealType === '전세' ? formatKRW(p.deposit) : formatKRW(p.price)}</td>
                 <td className="td">{formatArea(p.landAreaM2)}</td><td className="td"><span className="badge">{p.status}</span></td><td className="td">{p.region}</td></tr>))}
               {list.length === 0 && <tr><td colSpan={9} className="td text-center text-gray-500">조건에 맞는 매물이 없습니다.</td></tr>}</tbody></table></div>
-        ) : (
+        ) : view === 'card' ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{list.map((p) => (
             <div key={p.id} className="card hover:border-brand"><div className="flex items-center justify-between"><label className="flex items-center gap-1 text-xs text-gray-500"><input form="compare" type="checkbox" name="id" value={p.id} aria-label={`${p.title} 비교 선택`} />비교</label>{star(p.id)}</div>
               <Link href={`/properties/${p.id}`} className="block"><div className="text-xs text-gray-500">{p.code} · {p.category} · {p.dealType}</div><div className="font-bold">{p.title}</div><div className="text-brand">{formatKRW(p.price ?? p.deposit)}</div><div className="text-xs text-gray-600">{p.region} · {formatArea(p.landAreaM2)}</div><span className="badge mt-1">{p.status}</span></Link></div>))}</div>
-        )}
-        <div className="flex flex-wrap items-center gap-2"><button form="compare" className="btn-ghost">선택 매물 비교 (2~5개)</button><span className="text-xs text-gray-400">비교 화면에서 고객용 소개자료를 인쇄할 수 있습니다. 지도 보기는 지도 API 키 설정 후 제공됩니다.</span></div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2"><button form="compare" className="btn-ghost">선택 매물 비교 (2~5개)</button><span className="text-xs text-gray-400">비교 화면에서 고객용 소개자료를 인쇄할 수 있습니다.</span></div>
       </div>
     </div>
   );

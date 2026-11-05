@@ -1,6 +1,7 @@
 import { ActionForm, AreaInput, Field, MoneyInput, Select } from './ui';
 import { CATEGORIES, DEAL_TYPES, PROP_STATUS, REGIONS } from '@/lib/constants';
 import { formatKRW } from '@/lib/format';
+import { LocationPicker } from './property-map-lazy';
 import type { Property } from '@prisma/client';
 
 export function PropertyForm({ action, p, canOwner }: { action: (s: any, fd: FormData) => Promise<any>; p?: Property | null; canOwner: boolean }) {
@@ -18,6 +19,7 @@ export function PropertyForm({ action, p, canOwner }: { action: (s: any, fd: For
         {t('publicAddress', '공개용 주소 (동·리 단위)', p?.publicAddress, 'sm:col-span-2')}{t('addressDetail', '상세주소 (비공개)', p?.addressDetail)}
         {t('subCategory', '세부 분류', p?.subCategory)}
       </fieldset>
+      <fieldset className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><legend className="px-1 text-sm font-bold">위치 (지도 보기용 · 선택)</legend><LocationPicker lat={p?.lat} lng={p?.lng} /></fieldset>
       <fieldset className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><legend className="px-1 text-sm font-bold">가격 (예: 3억5천, 12억 3000만)</legend>
         <MoneyInput name="price" label="매매가" def={won(p?.price)} /><MoneyInput name="deposit" label="보증금/전세금" def={won(p?.deposit)} /><MoneyInput name="monthlyRent" label="월차임" def={won(p?.monthlyRent)} />
         <MoneyInput name="maintenanceFee" label="관리비" def={won(p?.maintenanceFee)} />
