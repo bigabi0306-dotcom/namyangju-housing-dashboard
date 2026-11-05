@@ -6,6 +6,8 @@ import { db } from './db';
 import { can } from './rbac';
 
 const COOKIE = 'centa_session';
+/** 운영(production)에서는 HTTPS 전용 쿠키. 신뢰할 수 있는 사내 LAN에서 http로 접속해야 할 때만 COOKIE_SECURE=false 로 끈다. */
+const cookieSecure = () => (process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production');
 const secret = () => {
   const s = process.env.AUTH_SECRET;
   if (!s || s.length < 32) throw new Error('AUTH_SECRET(32자 이상)이 설정되지 않았습니다.');
@@ -15,7 +17,7 @@ export type Session = { id: number; name: string; email: string; role: string; i
 
 export async function createSession(u: Session) {
   const token = await new SignJWT({ id: u.id, name: u.name, email: u.email, role: u.role }).setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('12h').sign(secret());
-  (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 43200 });
+  (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure: cookieSecure(), path: '/', maxAge: 43200 });
 }
 export async function destroySession() { (await cookies()).delete(COOKIE); }
 export async function getSession(): Promise<Session | null> {

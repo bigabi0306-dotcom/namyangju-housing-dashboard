@@ -2,6 +2,8 @@
 
 Next.js 15 · React 19 · TypeScript · Tailwind · Prisma 6 · PostgreSQL 16. 기존 정적 대시보드(저장소 루트)는 그대로 두고 이 폴더에 신규 구축했습니다.
 
+> 📌 **처음이라면:** 윈도우 PC 설치는 `docs/INSTALL_WINDOWS.md`, 사용법은 `docs/MANUAL.md`, 서버 배포·보안은 `docs/OPERATIONS.md`, 작업 인수 메모는 `docs/HANDOFF.md`.
+
 ## 실행
 ```bash
 cp .env.example .env            # DATABASE_URL, AUTH_SECRET 설정
@@ -10,7 +12,8 @@ npx prisma db push
 ADMIN_PASSWORD='10자이상비밀번호' npm run db:seed        # 대표 관리자 + 역할/권한 (SEED_DEMO=1 추가 시 '테스트' 데이터)
 npm run build && npm start      # http://localhost:3000
 npm test                        # 단위 테스트 / CENTA_ALLOW_TEST_WRITES=1 npx tsx tests/db.integration.ts (DB 통합 — 개발/테스트 DB 전용)
-./scripts/backup.sh · ./scripts/restore.sh <파일>        # 백업·복구
+./scripts/backup.sh · ./scripts/restore.sh <파일>        # 백업·복구 (리눅스/맥)
+node scripts/dbtool.mjs backup | restore <파일>           # 백업·복구 (윈도우 포함 공용)
 ```
 
 ## 구조
@@ -77,6 +80,7 @@ npm test                        # 단위 테스트 / CENTA_ALLOW_TEST_WRITES=1 n
 | 매물 상세: 관련 물건분석·계약·콘텐츠·현장방문 연결(권한별 표시), '이 매물로 콘텐츠 만들기' | ✅ | E2E |
 | 대시보드 필터(기간·지역·담당자): KPI·차트·지역/종류 현황에 적용(브리핑은 항상 전체 기준), 잘못된 값은 무시 | ✅ | E2E(DB 수치 대조) |
 | 업무 번호(CT-/CL-)를 DB id 기반으로 생성(삭제·가져오기가 섞여도 중복 없음), 연결 기록 있는 매물 삭제 시 이유 안내, 한국어 오류·404 화면(오류 번호로 로그 추적) | ✅ | DB 통합(예전 방식에서 실패함을 확인)+E2E |
+| 윈도우 설치 안내·실행 파일(start/start-lan/backup .bat), 공용 백업·복구 도구(dbtool), COOKIE_SECURE 옵션 | ⚠️ | dbtool은 리눅스에서 백업→복구 일치·오류 경로 검증, **윈도우 실행은 미검증** |
 | 국토부 아파트 실거래가 불러오기 | ⚠️ 코드만 | XML 파서만 단위테스트. 실제 호출은 키 활용신청·외부망 필요(이 환경은 차단) |
 
 ## 미구현 (메뉴에 "준비중" 표시, 작동하는 척하지 않음)
