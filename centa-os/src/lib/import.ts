@@ -10,15 +10,21 @@ const ALIAS: Record<string, string> = {
 const norm = (r: Record<string, string>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [ALIAS[k.replace(/\s/g, '')] ?? k, v]));
 const won = (s?: string) => { if (!s) return null; const n = parseKRW(s); return n === null ? null : BigInt(n); };
 
+/** 업로드 바이트 → 문자열. UTF-8이 아니면(한글 엑셀 CSV) EUC-KR(CP949)로 해석 */
+export function decodeCsv(buf: ArrayBuffer): string {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { return new TextDecoder('euc-kr').decode(buf); }
+}
+export const TEMPLATE_CSV = '\uFEFF원본매물번호,매물명,주소,종류,거래유형,지역,지번,가격,보증금,월세,토지면적,용도지역,지목,상태\r\n1001,예시 공장,경기 남양주시 화도읍 예시리 1-1,공장·창고,매매,남양주시,1-1,12억 5000만,,,1320,계획관리지역,공장용지,광고중\r\n';
+
 export type ImportResult = { added: number; updated: number; priceChanged: number; duplicates: number; missing: number; errors: string[] };
 /**
  * 관리자 CSV/Excel(CSV 저장) 내보내기 가져오기.
  * - 원본 필드(제목·주소·가격·상태 등)만 갱신, 내부 메모·고객 연결·분석은 건드리지 않음.
  * - fullSync=true 이면 파일에 없는 기존 원본 매물은 삭제하지 않고 '확인 대기'로 표시.
  */
-export async function importProperties(csv: string, system: string, fullSync: boolean, userId: number): Promise<ImportResult> {
+export async function importProperties(csv: string, system: string, fullSync: boolean, userId: number, dryRun = false): Promise<ImportResult> {
   const res: ImportResult = { added: 0, updated: 0, priceChanged: 0, duplicates: 0, missing: 0, errors: [] };
-  const log = await db.propertySyncLog.create({ data: { system, method: 'CSV' } });
+  const log = dryRun ? null : await db.propertySyncLog.create({ data: { system, method: 'CSV' } });
   const rows = parseCSV(csv).map(norm);
   const seen = new Set<string>();
   let n = await db.property.count();
@@ -32,6 +38,12 @@ export async function importProperties(csv: string, system: string, fullSync: bo
         zoning: r.zoning || null, landCategory: r.landCategory || null, ...(r.status ? { status: r.status } : {}),
       };
       const src = await db.propertySource.findUnique({ where: { system_externalId: { system, externalId: r.sourceId } }, include: { property: true } });
+      if (dryRun) {
+        if (src) { res.updated++; if (src.property.price !== f.price) res.priceChanged++; }
+        else if (await db.property.findFirst({ where: { address: f.address, lotNumber: f.lotNumber, dealType: f.dealType, sourceId: null } })) res.duplicates++;
+        else res.added++;
+        continue;
+      }
       if (src) {
         const old = src.property;
         await db.property.update({ where: { id: old.id }, data: { ...f, needsReview: false, updatedById: userId } }); // internalMemo 등은 data에 없으므로 보존
@@ -53,9 +65,10 @@ export async function importProperties(csv: string, system: string, fullSync: bo
     } catch (e) { res.errors.push(`${i + 2}행: ${(e as Error).message}`); }
   }
   if (fullSync && rows.length > 0) {
-    const gone = await db.property.updateMany({ where: { sourceSystem: system, sourceId: { notIn: [...seen] }, needsReview: false }, data: { needsReview: true } });
-    res.missing = gone.count;
+    if (dryRun) res.missing = await db.property.count({ where: { sourceSystem: system, sourceId: { notIn: [...seen] }, needsReview: false } });
+    else { const gone = await db.property.updateMany({ where: { sourceSystem: system, sourceId: { notIn: [...seen] }, needsReview: false }, data: { needsReview: true } });
+    res.missing = gone.count; }
   }
-  await db.propertySyncLog.update({ where: { id: log.id }, data: { finishedAt: new Date(), added: res.added, updated: res.updated, priceChanged: res.priceChanged, duplicates: res.duplicates, missing: res.missing, errors: res.errors.join('\n') || null, status: res.errors.length ? '일부 오류' : '완료' } });
+  if (log) await db.propertySyncLog.update({ where: { id: log.id }, data: { finishedAt: new Date(), added: res.added, updated: res.updated, priceChanged: res.priceChanged, duplicates: res.duplicates, missing: res.missing, errors: res.errors.join('\n') || null, status: res.errors.length ? '일부 오류' : '완료' } });
   return res;
 }

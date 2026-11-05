@@ -25,6 +25,13 @@ import { importProperties } from '../src/lib/import';
   await db.property.create({ data: { code: 'CT-IT' + Date.now(), title: '수동', category: '토지', dealType: '매매', region: '남양주시', address: '경기 남양주시 다다리 3', lotNumber: null } });
   const r3 = await importProperties('원본매물번호,매물명,주소,종류,거래유형,지역\nA9,다다토지,경기 남양주시 다다리 3,토지,매매,남양주시\n', sys, false, admin.id);
   assert.equal(r3.duplicates, 1); assert.equal(r3.added, 0);
+  // 미리보기는 저장하지 않음 + EUC-KR 디코딩
+  const before = await db.property.count();
+  const d = await importProperties('원본매물번호,매물명,주소\nZ1,드라이런,경기 어딘가 1\n', sys, false, admin.id, true);
+  assert.equal(d.added, 1); assert.equal(await db.property.count(), before);
+  const { decodeCsv } = await import('../src/lib/import');
+  const euc = new Uint8Array([0xb8, 0xc5, 0xb9, 0xb0]); // '매물' (CP949)
+  assert.equal(decodeCsv(euc.buffer), '매물');
   // 정리
   await db.property.deleteMany({ where: { OR: [{ sourceSystem: sys }, { code: { startsWith: 'CT-IT' } }] } });
   console.log('db integration: ALL PASS'); await db.$disconnect();
