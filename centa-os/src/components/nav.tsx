@@ -12,7 +12,7 @@ export const MENU = [
   { href: '/contracts', label: '계약관리', icon: FileSignature, perm: 'contract.read', ready: true },
   { href: '/content', label: '콘텐츠 스튜디오', icon: Clapperboard, perm: 'content.read', ready: true },
   { href: '/stats', label: '경영 통계', icon: BarChart3, perm: 'stats.read', ready: true },
-  { href: '/settings', label: '설정', icon: Settings, perm: 'settings.write', ready: false },
+  { href: '/settings', label: '설정', icon: Settings, perm: 'settings.write', ready: true },
 ];
 export function NavList({ role }: { role: string }) {
   return <nav className="space-y-1">{MENU.filter((m) => !m.perm || can(role, m.perm)).map((m) => (

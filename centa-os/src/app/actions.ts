@@ -8,20 +8,17 @@ import { audit } from '@/lib/audit';
 import { normPhone, parseKRW, pyeongToM2, kstDateStr } from '@/lib/format';
 import { matchScore, DEFAULT_WEIGHTS, type MatchWeights } from '@/lib/matching';
 
-// ── 로그인 (실패 횟수 제한: 메모리 기반 간이 보호) ──
-const fails = new Map<string, { n: number; until: number }>();
+// ── 로그인 (실패 5회/10분 잠금: DB 감사로그 기준이라 재시작·다중 인스턴스에서도 유지) ──
 export async function login(_: unknown, fd: FormData) {
-  const email = String(fd.get('email') ?? '').trim().toLowerCase();
+  const email = String(fd.get('email') ?? '').trim().toLowerCase().slice(0, 200);
   const pw = String(fd.get('password') ?? '');
-  const f = fails.get(email);
-  if (f && f.until > Date.now() && f.n >= 5) return { error: '로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.' };
+  const recentFails = await db.auditLog.count({ where: { action: 'login_fail', entity: 'user', entityId: email, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } });
+  if (recentFails >= 5) return { error: '로그인 시도가 너무 많습니다. 10분 후 다시 시도하세요.' };
   const u = await db.user.findUnique({ where: { email }, include: { role: true } });
   if (!u || !u.active || !(await verifyPassword(pw, u.passwordHash))) {
-    fails.set(email, { n: (f?.n ?? 0) + 1, until: Date.now() + 5 * 60_000 });
     await audit(null, 'login_fail', 'user', email);
     return { error: '이메일 또는 비밀번호가 올바르지 않습니다.' };
   }
-  fails.delete(email);
   await createSession({ id: u.id, name: u.name, email: u.email, role: u.role.key });
   await audit(u.id, 'login', 'user', u.id);
   redirect('/');
@@ -156,11 +153,13 @@ async function upsertMatch(propertyId: number, clientId: number, r: ReturnType<t
   });
 }
 export async function recomputeMatchesForClient(clientId: number) {
+  await requireUser('client.read');
   const [c, props, w] = await Promise.all([db.client.findUnique({ where: { id: clientId } }), db.property.findMany({ where: { needsReview: false, status: { notIn: ['계약완료', '잔금완료'] } } }), weights()]);
   if (!c) return;
   for (const p of props) await upsertMatch(p.id, c.id, matchScore(toReq(c), toFacts(p), w));
 }
 export async function recomputeMatchesForProperty(propertyId: number) {
+  await requireUser('property.read');
   const [p, clients, w] = await Promise.all([db.property.findUnique({ where: { id: propertyId } }), db.client.findMany({ where: { kind: { in: ['매수', '임차', '투자'] } } }), weights()]);
   if (!p) return;
   for (const c of clients) await upsertMatch(p.id, c.id, matchScore(toReq(c), toFacts(p), w));

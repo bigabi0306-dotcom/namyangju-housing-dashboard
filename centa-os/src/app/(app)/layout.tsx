@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/properties/new" className="btn hidden sm:inline-flex"><Plus size={14} />매물</Link>
           <Link href="/clients/new" className="btn-ghost hidden sm:inline-flex"><Plus size={14} />고객</Link>
           <Link href="/notifications" className="btn-ghost relative" aria-label="알림"><Bell size={16} />{unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-brand px-1 text-[10px] text-white">{unread}</span>}</Link>
-          <div className="hidden text-right text-xs sm:block"><div className="font-semibold">{me.name}</div><div className="text-gray-500">{ROLES[me.role as RoleKey]}</div></div>
+          <Link href="/account" className="hidden text-right text-xs sm:block"><div className="font-semibold">{me.name}</div><div className="text-gray-500">{ROLES[me.role as RoleKey]}</div></Link>
           <form action={logout}><button className="btn-ghost" aria-label="로그아웃"><LogOut size={16} /></button></form>
         </header>
         <main className="mx-auto max-w-6xl p-3 sm:p-5">{children}</main>

@@ -19,7 +19,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const fc = Object.fromEntries(funnel.map((f) => [f.stage, f._count]));
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between"><h1 className="text-xl font-bold">고객관리 <span className="text-sm font-normal text-gray-500">({list.length}명)</span></h1>{can(me.role, 'client.write') && <Link href="/clients/new" className="btn">+ 고객 등록</Link>}</div>
+      <div className="flex items-center justify-between"><h1 className="text-xl font-bold">고객관리 <span className="text-sm font-normal text-gray-500">({list.length}명)</span></h1>{can(me.role, 'client.write') && <div className="flex gap-2"><Link href="/clients/import" className="btn-ghost">가져오기</Link><Link href="/clients/new" className="btn">+ 고객 등록</Link></div>}</div>
       <div className="card"><h2 className="mb-2 text-sm font-bold">영업 파이프라인</h2>
         <div className="flex flex-wrap gap-2">{STAGES.map((s, i) => <Link key={s} href={`?stage=${encodeURIComponent(s)}`} className={`min-w-[88px] flex-1 rounded-lg border p-2 text-center ${sp.stage === s ? 'border-brand bg-brand-light' : ''}`}><div className="text-xl font-bold text-brand">{fc[s] ?? 0}</div><div className="text-xs">{i + 1}. {s}</div></Link>)}</div></div>
       <form className="card flex flex-wrap gap-2"><input name="q" defaultValue={sp.q} className="input !w-56" placeholder="이름·연락처·회사·번호" />

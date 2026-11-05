@@ -29,6 +29,7 @@ model User {
   roleId       Int
   role         Role     @relation(fields: [roleId], references: [id])
   active       Boolean  @default(true)
+  passwordChangedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   properties   Property[] @relation("PropAssignee")
