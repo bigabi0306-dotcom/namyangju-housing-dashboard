@@ -10,3 +10,4 @@ body { @apply bg-gray-50 text-ink antialiased; font-family: 'Pretendard','Noto S
   .td { @apply px-3 py-2 text-sm; }
   .badge { @apply inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700; }
 }
+@media print { aside, header, .no-print { display: none !important; } body { background: #fff; } main { max-width: none !important; padding: 0 !important; } .card { box-shadow: none; break-inside: avoid; } }

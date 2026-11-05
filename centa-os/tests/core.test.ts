@@ -50,3 +50,41 @@ test('일정: 반복 펼치기·충돌 표시', () => {
   const c = o.filter((x) => x.conflict).map((x) => x.id).sort();
   assert.deepEqual(c, [1, 2]); // 같은 담당자 11/9 겹침만 충돌, 담당자 다른 3번은 제외
 });
+import { incomeAnalysis, irr, devAnalysis, devScenarios, devSensitivity, compStats, parseComps } from '../src/lib/finance';
+import { parseTradesXml } from '../src/lib/publicdata';
+test('IRR: 알려진 값', () => {
+  assert.ok(Math.abs(irr([-100, 110])! - 0.10) < 1e-9);
+  assert.ok(Math.abs(irr([-1000, 500, 500, 500])! - 0.2338) < 1e-3);
+  assert.equal(irr([100, 100]), null);
+});
+test('수익형 계산: 손계산 대조', () => {
+  const r = incomeAnalysis({ price: 1e9, acqCostRate: 5, deposit: 1e8, monthlyRent: 5e6, vacancyRate: 10, opex: 5e6, repair: 2e6, loan: 4e8, loanRate: 5, holdYears: 5, exitPrice: 1.2e9, sellCostRate: 0 });
+  assert.equal(r.grossRent, 6e7); assert.equal(r.egi, 5.4e7); assert.equal(r.noi, 4.7e7);
+  assert.equal(r.totalInvest, 1.05e9); assert.equal(r.equity, 5.5e8); assert.equal(r.interest, 2e7); assert.equal(r.annualCF, 2.7e7);
+  assert.ok(Math.abs(r.simpleYield - 6e7 / 9e8) < 1e-12); assert.ok(Math.abs(r.noiYield - 4.7e7 / 9.5e8) < 1e-12);
+  assert.ok(Math.abs(r.cashOnCash - 2.7e7 / 5.5e8) < 1e-12); assert.ok(Math.abs(r.breakEvenOccupancy! - 2.7e7 / 6e7) < 1e-12);
+  // 5년차 회수 = 12억 − 대출 4억 − 보증금 1억 = 7억 + CF 2700만
+  assert.equal(r.exitProceeds, 7e8); assert.ok(r.irr! > 0.08 && r.irr! < 0.12, String(r.irr));
+});
+test('수익형: 자기자본 ≤ 0 경고, IRR 없음', () => {
+  const r = incomeAnalysis({ price: 1e9, acqCostRate: 0, deposit: 6e8, monthlyRent: 1e6, vacancyRate: 0, opex: 0, repair: 0, loan: 5e8, loanRate: 5, holdYears: 3, exitPrice: 1e9, sellCostRate: 0 });
+  assert.equal(r.irr, null); assert.ok(r.warnings.some((w) => w.includes('자기자본')));
+});
+test('개발사업 수지·시나리오·민감도', () => {
+  const d = { land: 2e9, acqCostRate: 5, floorArea: 1000, constructionPerM2: 3e6, designRate: 5, permit: 5e7, otherCost: 1e8, ltv: 50, loanRate: 6, years: 2, saleAmount: 8e9 };
+  const r = devAnalysis(d);
+  assert.equal(r.construction, 3e9); assert.equal(r.design, 1.5e8); assert.equal(r.financeCost, (5e9 * 0.5) * 0.06 * 2);
+  assert.equal(r.totalCost, 2e9 + 1e8 + 3e9 + 1.5e8 + 5e7 + 1e8 + 3e8); assert.equal(r.profit, 8e9 - r.totalCost);
+  const s = devScenarios(d) as any; assert.ok(s.낙관.profit > s.기준.profit && s.기준.profit > s.보수.profit);
+  const g = devSensitivity(d); assert.equal(g.grid[2][1], r.profit); // 변동 0%·0%
+});
+test('거래사례 통계·파싱', () => {
+  const { comps, errors } = parseComps('2026-09,84,5억\n2026-10,84,5억4천\n잘못된줄', (s) => (s === '5억' ? 5e8 : s === '5억4천' ? 5.4e8 : null));
+  assert.equal(comps.length, 2); assert.equal(errors.length, 1);
+  const st = compStats(comps, 84, 6e8)!; assert.equal(st.n, 2); assert.ok(Math.abs(st.estimate! - 5.2e8) < 1); assert.ok(st.gapPct! > 0.15);
+  assert.equal(compStats([], 84, 1), null);
+});
+test('실거래 XML 파서(영문/국문 태그)', () => {
+  const x = '<response><body><items><item><aptNm>테스트아파트</aptNm><dealAmount>  52,000</dealAmount><excluUseAr>84.97</excluUseAr><dealYear>2026</dealYear><dealMonth>9</dealMonth><umdNm>화도읍</umdNm></item><item><아파트>구태그</아파트><거래금액>10,000</거래금액><전용면적>59.9</전용면적><년>2026</년><월>10</월></item></items></body></response>';
+  const t = parseTradesXml(x); assert.equal(t.length, 2); assert.equal(t[0].price, 5.2e8); assert.equal(t[0].date, '2026-09'); assert.equal(t[1].date, '2026-10'); assert.equal(t[1].name, '구태그');
+});

@@ -6,7 +6,7 @@ export const MENU = [
   { href: '/', label: 'AI 업무 브리핑', icon: Sparkles, perm: null, ready: true },
   { href: '/properties', label: '매물장', icon: Building2, perm: 'property.read', ready: true },
   { href: '/clients', label: '고객관리', icon: Users, perm: 'client.read', ready: true },
-  { href: '/analysis', label: '물건분석', icon: LineChart, perm: 'analysis.read', ready: false },
+  { href: '/analysis', label: '물건분석', icon: LineChart, perm: 'analysis.read', ready: true },
   { href: '/work', label: '업무일지', icon: NotebookPen, perm: 'work.read', ready: true },
   { href: '/calendar', label: '일정관리', icon: CalendarDays, perm: 'calendar.read', ready: true },
   { href: '/contracts', label: '계약관리', icon: FileSignature, perm: 'contract.read', ready: false },
