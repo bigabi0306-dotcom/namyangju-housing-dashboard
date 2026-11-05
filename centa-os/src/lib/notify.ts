@@ -13,3 +13,15 @@ export async function generateReminders(userId: number) {
     await db.notification.create({ data: { userId: e.assigneeId ?? userId, title: `일정 알림: ${e.title}`, body: `${e.type} · ${fmtDateTime(e.startAt)} 시작` } });
   }
 }
+
+/** 3일 이내 도래(또는 경과)한 미수령 납부 일정 알림. 계약 담당자(없으면 현재 사용자)에게 건별로 1회. */
+export async function generateContractAlerts(userId: number, role: string) {
+  if (role !== 'OWNER' && role !== 'AGENT') return;
+  const soon = new Date(Date.now() + 3 * 864e5);
+  const due = await db.contractPayment.findMany({ where: { paidAt: null, dueDate: { lt: soon }, contract: { status: { notIn: ['잔금완료', '취소'] }, ...(role === 'OWNER' ? {} : { agentId: userId }) } }, include: { contract: { include: { property: true } } } });
+  for (const p of due) {
+    const title = `[계약알림#${p.id}] ${p.contract.code} ${p.kind} ${fmtDateTime(p.dueDate)}`;
+    if (await db.notification.findFirst({ where: { userId, title } })) continue;
+    await db.notification.create({ data: { userId, title, body: `${p.contract.property.title} · ${p.kind} 예정일이 ${p.dueDate! < new Date() ? '지났습니다' : '임박했습니다'}.` } });
+  }
+}

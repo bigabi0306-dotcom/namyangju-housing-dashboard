@@ -6,11 +6,12 @@ import { MobileNav } from '@/components/ui';
 import { ROLES, type RoleKey } from '@/lib/rbac';
 import { Plus, LogOut, Bell } from 'lucide-react';
 import { db } from '@/lib/db';
-import { generateReminders } from '@/lib/notify';
+import { generateReminders, generateContractAlerts } from '@/lib/notify';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireUser();
   await generateReminders(me.id);
+  await generateContractAlerts(me.id, me.role);
   const unread = await db.notification.count({ where: { userId: me.id, read: false } });
   const brand = <div className="mb-4 px-2 text-lg font-extrabold text-brand">CENTA <span className="text-ink">REALTY OS</span></div>;
   return (

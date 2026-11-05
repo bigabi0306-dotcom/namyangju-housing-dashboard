@@ -10,6 +10,7 @@ test('금액 표시', () => {
   assert.equal(formatKRW(300000000), '3억원');
   assert.equal(formatKRW(50000000), '5,000만원');
   assert.equal(formatKRW(null), '-');
+  assert.equal(formatKRW(163350), '16만 3,350원'); assert.equal(formatKRW(3350), '3,350원'); assert.equal(formatKRW(100003350), '1억 3,350원'); assert.equal(formatKRW(-50000000), '-5,000만원');
 });
 test('금액 입력 파싱', () => {
   assert.equal(parseKRW('3억5천'), 350000000);
@@ -122,4 +123,26 @@ test('콘텐츠: 상태 전환·승인 규칙', () => {
 test('콘텐츠: AI 요청에 비공개 정보 없음 + 채널별 규격', () => {
   const f = publicFacts(prop, o); const r = aiRequest('유튜브 쇼츠', f, o, 'm'); const s = JSON.stringify(r);
   for (const secret of ['홍길동', '급매', '비밀리']) assert.ok(!s.includes(secret)); assert.ok(s.includes('정확히 30초'));
+});
+import { calcSettlement, checkContractTransition, propertyStatusFor, lastMonths, kstMonth, priceBand, appendHistory } from '../src/lib/settlement';
+test('정산: 배분·운영비·세금 참고액, 합계 일치', () => {
+  const r = calcSettlement({ receivedFee: 10_000_000, agentRatio: 60, expenseRatio: 5, taxRefRate: 3.3 });
+  assert.equal(r.agentShare, 6_000_000); assert.equal(r.officeShare, 4_000_000); assert.equal(r.expense, 500_000); assert.equal(r.payable, 5_500_000);
+  assert.equal(r.taxRef, 181_500); assert.equal(r.netRef, 5_318_500);
+  const odd = calcSettlement({ receivedFee: 1_000_001, agentRatio: 33.3, expenseRatio: 0, taxRefRate: 0 }); assert.equal(odd.agentShare + odd.officeShare, 1_000_001);
+  assert.equal(calcSettlement({ receivedFee: 100, agentRatio: 10, expenseRatio: 50, taxRefRate: 0 }).payable, 0); // 운영비는 배분액 한도
+  assert.throws(() => calcSettlement({ receivedFee: 1, agentRatio: 101, expenseRatio: 0, taxRefRate: 0 })); assert.throws(() => calcSettlement({ receivedFee: -1, agentRatio: 1, expenseRatio: 0, taxRefRate: 0 }));
+});
+test('계약 상태 전환 규칙', () => {
+  const o = { isOwner: false, balancePaid: false, hasBalance: true };
+  assert.equal(checkContractTransition('협상', '계약', o), null); assert.ok(checkContractTransition('계약', '협상', o)!.includes('되돌릴'));
+  assert.ok(checkContractTransition('중도금수령', '잔금완료', o)!.includes('잔금 수령')); assert.equal(checkContractTransition('중도금수령', '잔금완료', { ...o, balancePaid: true }), null);
+  assert.equal(checkContractTransition('계약', '취소', o), null); assert.ok(checkContractTransition('잔금완료', '취소', o)!.includes('변경할 수 없')); assert.ok(checkContractTransition('취소', '협상', o) !== null); assert.equal(checkContractTransition('취소', '협상', { ...o, isOwner: true }), null);
+  assert.equal(propertyStatusFor('계약'), '계약완료'); assert.equal(propertyStatusFor('잔금완료'), '잔금완료'); assert.equal(propertyStatusFor('협상'), null);
+});
+test('통계 도우미: 월 버킷·가격대·이력', () => {
+  assert.deepEqual(lastMonths(3, new Date('2026-01-15T00:00:00+09:00')), ['2025-11', '2025-12', '2026-01']);
+  assert.equal(kstMonth(new Date('2026-02-28T16:00:00Z')), '2026-03'); // KST 3/1 01:00
+  assert.equal(priceBand(5e8), '5~10억'); assert.equal(priceBand(9.9e7), '1억 미만'); assert.equal(priceBand(5e9), '30억 이상');
+  assert.equal(appendHistory(undefined, { at: 'a', by: 'b', action: 'c' }).length, 1); assert.equal(appendHistory([{ at: '1', by: 'x', action: 'y' }], { at: '2', by: 'x', action: 'z' }).length, 2);
 });

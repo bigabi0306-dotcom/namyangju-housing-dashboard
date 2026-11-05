@@ -364,8 +364,13 @@ model Settlement {
   ratio     Float
   expectedAmount BigInt
   paidAmount BigInt  @default(0)
+  ruleId    Int?
+  expenseRatio Float @default(0)
+  taxRefRate Float   @default(0)
+  overrideReason String?
   note      String?
   history   Json     @default("[]")
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 

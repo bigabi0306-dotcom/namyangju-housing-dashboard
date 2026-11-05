@@ -6,12 +6,15 @@ import { can } from '@/lib/rbac';
 import { formatKRW, fmtDateTime } from '@/lib/format';
 import { briefingAction } from '../actions';
 import { Check, CalendarClock } from 'lucide-react';
+import { computeStats } from '@/lib/stats';
+import { BarList, MonthBars } from '@/components/charts';
 
 const IMP = { 3: ['높음', 'bg-red-100 text-red-700'], 2: ['보통', 'bg-amber-100 text-amber-700'], 1: ['낮음', 'bg-gray-100 text-gray-600'] } as const;
 
 export default async function Home() {
   const me = await requireUser();
   const b = await buildBriefing(me);
+  const st = await computeStats({ months: 6, withFee: can(me.role, 'settlement.read') });
   const monthStart = new Date(`${b.date.slice(0, 7)}-01T00:00:00+09:00`);
   const [total, active, newThis, priceThis, closed, clients, newConsult, contracts, fee, taskAll, taskDone, contentPub, byCat, byRegion, recentClients] = await Promise.all([
     db.property.count(), db.property.count({ where: { status: { in: ['상담중', '현장안내', '협의중', '가계약'] } } }),
@@ -20,7 +23,7 @@ export default async function Home() {
     db.property.count({ where: { status: { in: ['계약완료', '잔금완료'] } } }),
     db.client.count(), db.consultation.count({ where: { at: { gte: monthStart } } }),
     db.contract.count({ where: { status: { notIn: ['잔금완료', '취소'] } } }),
-    can(me.role, 'contract.read') ? db.contract.aggregate({ _sum: { receivedFee: true }, where: { receivedAt: { gte: monthStart } } }) : null,
+    can(me.role, "settlement.read") ? db.contract.aggregate({ _sum: { receivedFee: true }, where: { receivedAt: { gte: monthStart } } }) : null,
     db.task.count(), db.task.count({ where: { done: true } }),
     db.contentProject.count({ where: { status: '발행완료' } }),
     db.property.groupBy({ by: ['category'], _count: true }), db.property.groupBy({ by: ['region'], _count: true }),
@@ -75,7 +78,12 @@ export default async function Home() {
           <ul className="space-y-1 text-sm">{byCat.map((x) => <li key={x.category}>{x.category}: <b>{x._count}</b></li>)}</ul>
           <hr className="my-2" /><ul className="flex flex-wrap gap-2 text-sm">{byRegion.map((x) => <li key={x.region} className="badge">{x.region} {x._count}</li>)}</ul></div>
       </section>
-      <p className="text-xs text-gray-400">월별 수입 추이·유입 채널·콘텐츠 현황 차트는 경영 통계 단계(6단계)에서 구현 예정입니다.</p>
+      <section className="grid gap-3 lg:grid-cols-3">
+        {st.feeByMonth ? <MonthBars title="월별 수입 추이 (실제 수령 중개보수)" months={st.months} values={st.feeByMonth} fmt={(v) => `${Math.round(v / 1e4).toLocaleString('ko-KR')}만`} /> : <MonthBars title="월별 계약 체결" months={st.months} values={st.signedByMonth} />}
+        <BarList title="유입 채널별 고객" data={st.clientsByChannel} />
+        <BarList title="콘텐츠 채널별 발행" data={Object.fromEntries(Object.entries(st.content.chPub).map(([k, v]) => [k, v.n]))} empty="발행된 콘텐츠가 없습니다" />
+      </section>
+      <p className="text-xs text-gray-400">상세 분석은 경영 통계 메뉴에서 기간·지역·담당자별로 볼 수 있습니다.</p>
     </div>
   );
 }

@@ -10,8 +10,8 @@ export function formatKRW(v: number | bigint | null | undefined): string {
   const parts: string[] = [];
   if (eok) parts.push(`${eok.toLocaleString('ko-KR')}억`);
   if (man) parts.push(`${man.toLocaleString('ko-KR')}만`);
-  if (!parts.length) return `${neg}${rest.toLocaleString('ko-KR')}원`;
-  return neg + parts.join(' ') + '원' + (rest ? ` ${rest}` : '');
+  if (rest) parts.push(rest.toLocaleString('ko-KR'));
+  return `${neg}${parts.join(' ')}원`;
 }
 /** "3억5천", "12억 3000만", "5천만원", "5000만", "350,000,000" → 원 단위 정수 (해석 불가 시 null) */
 export function parseKRW(input: string): number | null {

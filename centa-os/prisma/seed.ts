@@ -15,7 +15,8 @@ async function main() {
   const admin = await db.user.upsert({ where: { email }, update: {}, create: { email, name: process.env.ADMIN_NAME ?? '한지윤', passwordHash: await bcrypt.hash(pw, 12), roleId: owner.id } });
   await db.organizationSetting.upsert({ where: { key: 'briefing' }, update: {}, create: { key: 'briefing', value: { noContactDays: 14, followUpDays: 3, autoTime: '08:30' } } });
   await db.organizationSetting.upsert({ where: { key: 'match_weights' }, update: {}, create: { key: 'match_weights', value: { region: 25, category: 25, dealType: 10, price: 25, area: 10, largeTruck: 5 } } });
-  await db.commissionRule.upsert({ where: { id: 1 }, update: {}, create: { id: 1, name: '기본(관리자 설정 필요)', agentRatio: 0, officeRatio: 100, isDefault: true } });
+  // 명시적 id를 쓰면 자동 증가 번호와 충돌하므로 이름으로 조회 후 생성한다
+  if (!(await db.commissionRule.findFirst({ where: { name: '기본(관리자 설정 필요)' } }))) await db.commissionRule.create({ data: { name: '기본(관리자 설정 필요)', agentRatio: 0, officeRatio: 100, isDefault: true } });
   if (process.env.SEED_DEMO === '1') {
     const T = { isTestData: true };
     const mk = async (code: string, d: any) => db.property.upsert({ where: { code }, update: {}, create: { code, ...T, assigneeId: admin.id, ...d } });

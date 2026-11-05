@@ -22,6 +22,11 @@ export async function saveWorkLog(_: unknown, fd: FormData) {
     await db.consultation.create({ data: { clientId, content, channel: type, result: str(fd.get('result')), nextAction: followUp, createdById: me.id } });
     await db.client.update({ where: { id: clientId }, data: { lastConsultAt: date, ...(followDate ? { nextContactAt: kst(followDate) } : {}) } });
   }
+  // 현장답사는 현장방문 기록으로도 남겨 결과 미등록 알림·현장안내 통계에 사용
+  if (type === '현장답사' && propertyId) {
+    await db.propertyVisit.create({ data: { propertyId, clientId, visitedAt: date, resultRecorded: !!str(fd.get('result')), result: str(fd.get('result')) } });
+    await db.property.updateMany({ where: { id: propertyId, status: { in: ['신규', '광고중', '상담중'] } }, data: { status: '현장안내' } });
+  }
   if (followUp) await db.task.create({ data: { title: followUp, dueDate: followDate ? kst(followDate) : null, assigneeId: me.id, clientId, propertyId, needsCheck: fd.get('needsCheck') === 'on', note: `업무일지 #${log.id}에서 생성` } });
   if (followUp && followDate && fd.get('makeEvent') === 'on') await db.calendarEvent.create({ data: { title: followUp, type: '기타', startAt: kst(followDate), assigneeId: me.id, clientId, propertyId, remindMinutes: 60 } });
   await audit(me.id, 'create', 'work_log', log.id);
