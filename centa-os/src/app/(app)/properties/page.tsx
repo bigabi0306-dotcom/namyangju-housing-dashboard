@@ -54,7 +54,7 @@ export default async function Properties({ searchParams }: { searchParams: Promi
       <div className="space-y-2"><form id="compare" action="/properties/compare" />
         {view === 'map' && <div className="space-y-2"><PropertyMap items={mapItems} height={520} /><p className="text-sm text-gray-600">지도에 표시된 매물 {mapItems.length}건{list.length - mapItems.length > 0 && <> · <b>좌표가 없어 표시되지 않은 매물 {list.length - mapItems.length}건</b> (매물 수정에서 위치를 지정하세요)</>}. 마커를 누르면 매물 정보가 표시됩니다.</p></div>}
         {view === 'table' ? (
-          <div className="card overflow-x-auto !p-0"><table className="w-full min-w-[760px]"><thead className="border-b bg-gray-50"><tr><th className="th w-16">비교/★</th>{['번호', '매물명', '종류', '거래', '가격', '면적(대지)', '상태', '지역'].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
+          <div className="card overflow-x-auto !p-0"><table className="w-full min-w-[760px]"><thead className="border-b bg-gray-50"><tr><th className="th w-16">비교/★</th>{['번호', '매물명', '종류', '거래', '가격', '면적(대지/전용)', '상태', '지역'].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
             <tbody className="divide-y">{list.map((p) => (
               <tr key={p.id} className="hover:bg-brand-light/30">
                 <td className="td"><div className="flex items-center gap-1"><input form="compare" type="checkbox" name="id" value={p.id} aria-label={`${p.title} 비교 선택`} />{star(p.id)}</div></td>
@@ -62,12 +62,12 @@ export default async function Properties({ searchParams }: { searchParams: Promi
                 <td className="td"><Link href={`/properties/${p.id}`} className="font-semibold hover:text-brand">{p.title}</Link>{p.isTestData && <span className="badge ml-1">테스트</span>}{p.needsReview && <span className="badge ml-1 !bg-amber-100">확인대기</span>}</td>
                 <td className="td">{p.category}</td><td className="td">{p.dealType}</td>
                 <td className="td">{p.dealType === '월세' ? `${formatKRW(p.deposit)} / ${formatKRW(p.monthlyRent)}` : p.dealType === '전세' ? formatKRW(p.deposit) : formatKRW(p.price)}</td>
-                <td className="td">{formatArea(p.landAreaM2)}</td><td className="td"><span className="badge">{p.status}</span></td><td className="td">{p.region}</td></tr>))}
+                <td className="td">{formatArea(p.landAreaM2 ?? p.exclusiveAreaM2)}</td><td className="td"><span className="badge">{p.status}</span></td><td className="td">{p.region}</td></tr>))}
               {list.length === 0 && <tr><td colSpan={9} className="td text-center text-gray-500">조건에 맞는 매물이 없습니다.</td></tr>}</tbody></table></div>
         ) : view === 'card' ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{list.map((p) => (
             <div key={p.id} className="card hover:border-brand"><div className="flex items-center justify-between"><label className="flex items-center gap-1 text-xs text-gray-500"><input form="compare" type="checkbox" name="id" value={p.id} aria-label={`${p.title} 비교 선택`} />비교</label>{star(p.id)}</div>
-              <Link href={`/properties/${p.id}`} className="block"><div className="text-xs text-gray-500">{p.code} · {p.category} · {p.dealType}</div><div className="font-bold">{p.title}</div><div className="text-brand">{formatKRW(p.price ?? p.deposit)}</div><div className="text-xs text-gray-600">{p.region} · {formatArea(p.landAreaM2)}</div><span className="badge mt-1">{p.status}</span></Link></div>))}</div>
+              <Link href={`/properties/${p.id}`} className="block"><div className="text-xs text-gray-500">{p.code} · {p.category} · {p.dealType}</div><div className="font-bold">{p.title}</div><div className="text-brand">{formatKRW(p.price ?? p.deposit)}</div><div className="text-xs text-gray-600">{p.region} · {formatArea(p.landAreaM2 ?? p.exclusiveAreaM2)}</div><span className="badge mt-1">{p.status}</span></Link></div>))}</div>
         ) : null}
         <div className="flex flex-wrap items-center gap-2"><button form="compare" className="btn-ghost">선택 매물 비교 (2~5개)</button><span className="text-xs text-gray-400">비교 화면에서 고객용 소개자료를 인쇄할 수 있습니다.</span></div>
       </div>

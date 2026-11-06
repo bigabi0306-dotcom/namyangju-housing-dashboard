@@ -26,7 +26,7 @@ export function PropertyForm({ action, p, canOwner }: { action: (s: any, fd: For
         <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="priceNegotiable" defaultChecked={p?.priceNegotiable} />가격 협의 가능</label>
       </fieldset>
       <fieldset className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><legend className="px-1 text-sm font-bold">토지·건축 (면적은 ㎡로 저장, 평 병기)</legend>
-        <AreaInput name="landAreaM2" label="토지면적" def={p?.landAreaM2} /><AreaInput name="buildingAreaM2" label="건축면적" def={p?.buildingAreaM2} /><AreaInput name="totalFloorAreaM2" label="연면적" def={p?.totalFloorAreaM2} />
+        <AreaInput name="landAreaM2" label="토지면적" def={p?.landAreaM2} /><AreaInput name="exclusiveAreaM2" label="전용면적" def={p?.exclusiveAreaM2} /><AreaInput name="buildingAreaM2" label="건축면적" def={p?.buildingAreaM2} /><AreaInput name="totalFloorAreaM2" label="연면적" def={p?.totalFloorAreaM2} />
         {t('landCategory', '지목', p?.landCategory)}{t('zoning', '용도지역', p?.zoning)}{t('roadCondition', '도로조건', p?.roadCondition)}
         {t('floors', '층수', p?.floors)}{t('buildingUse', '건물용도', p?.buildingUse)}{t('parking', '주차', p?.parking)}
         <label className="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="largeTruck" defaultChecked={p?.largeTruck ?? false} />대형차 진입 가능</label>

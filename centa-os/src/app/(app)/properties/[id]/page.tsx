@@ -33,7 +33,7 @@ export default async function PropertyDetail({ params, searchParams }: { params:
         <div className="flex gap-2">{can(me.role, 'analysis.write') && <Link href={`/analysis?pid=${p.id}`} className="btn">AI 물건분석</Link>}<span className="badge">{p.status}</span>{me.role === 'OWNER' && <form action={deleteProperty.bind(null, p.id)}><button className="btn-ghost text-red-600">삭제</button></form>}</div></div>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="card"><div className="text-xs text-gray-500">가격</div><div className="text-lg font-bold text-brand">{formatKRW(p.price ?? p.deposit)}</div>{p.monthlyRent && <div className="text-sm">월 {formatKRW(p.monthlyRent)}</div>}</div>
-        <div className="card"><div className="text-xs text-gray-500">대지면적</div><div className="font-bold">{formatArea(p.landAreaM2)}</div></div>
+        <div className="card"><div className="text-xs text-gray-500">{p.landAreaM2 == null && p.exclusiveAreaM2 != null ? '전용면적' : '대지면적'}</div><div className="font-bold">{formatArea(p.landAreaM2 ?? p.exclusiveAreaM2)}</div></div>
         <div className="card"><div className="text-xs text-gray-500">위치</div><div className="font-bold">{p.region}</div><div className="text-xs text-gray-600">{canOwner ? p.address : p.publicAddress ?? p.region}</div></div>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">

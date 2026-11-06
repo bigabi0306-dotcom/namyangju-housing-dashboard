@@ -149,11 +149,11 @@ test('통계 도우미: 월 버킷·가격대·이력', () => {
 import { buildPropertyWhere, withFavorites, toQueryString, fromQueryString } from '../src/lib/property-query';
 test('매물 검색 조건: 필터 변환·잘못된 값 무시', () => {
   const w: any = buildPropertyWhere({ category: '토지', pmin: '3억', pmax: '10억', amin: '100', zoning: '계획', from: '2026-01-01', to: '2026-01-31', assignee: 'me' }, 7);
-  assert.equal(w.category, '토지'); assert.equal(w.price.gte, 300000000n); assert.equal(w.price.lte, 1000000000n); assert.equal(w.landAreaM2.gte, 100); assert.equal(w.assigneeId, 7);
+  assert.equal(w.category, '토지'); assert.equal(w.price.gte, 300000000n); assert.equal(w.price.lte, 1000000000n); assert.deepEqual(w.AND[1], { OR: [{ landAreaM2: { gte: 100 } }, { exclusiveAreaM2: { gte: 100 } }] }); assert.equal(w.assigneeId, 7);
   assert.equal(w.createdAt.gte.toISOString(), '2025-12-31T15:00:00.000Z'); assert.equal(w.createdAt.lt.toISOString(), '2026-01-31T15:00:00.000Z'); // KST 1/1 ~ 1/31 포함
   assert.equal(w.AND[0].zoning.contains, '계획');
   const bad: any = buildPropertyWhere({ pmin: '쓰레기', amin: '-5', from: '2026-13-99x', assignee: 'x;drop' }, 1);
-  assert.equal(bad.price, undefined); assert.equal(bad.landAreaM2, undefined); assert.equal(bad.createdAt, undefined); assert.equal(bad.assigneeId, undefined);
+  assert.equal(bad.price, undefined); assert.equal(bad.AND, undefined); assert.equal(bad.createdAt, undefined); assert.equal(bad.assigneeId, undefined);
   const f: any = withFavorites(buildPropertyWhere({ fav: '1' }, 1), [3, 4]); assert.deepEqual(f.AND, [{ id: { in: [3, 4] } }]);
 });
 test('저장된 검색: 허용 키만 직렬화', () => {
@@ -199,4 +199,12 @@ test('좌표 검증: 빈 값·한쪽만·바뀐 순서·범위 밖', () => {
   assert.deepEqual(parseCoordPair('37.6360123', '127.2165'), { ok: true, lat: 37.636012, lng: 127.2165 });
   assert.match((parseCoordPair('37.6', '') as any).error, /함께/); assert.match((parseCoordPair('abc', '127') as any).error, /숫자/);
   assert.match((parseCoordPair('127.2', '37.6') as any).error, /바뀐/); assert.match((parseCoordPair('35.0', '140.0') as any).error, /범위/); assert.match((parseCoordPair('0', '0') as any).error, /범위/);
+});
+import { shouldRunSync } from '../src/lib/schedule';
+test('자동 동기화 시작 판단: 수동·간격·진행 중', () => {
+  const now = new Date('2026-11-06T12:00:00Z'); const ago = (min: number, status = '완료') => ({ startedAt: new Date(now.getTime() - min * 60000), status });
+  assert.equal(shouldRunSync(0, null, now), false, '수동이면 안 함'); assert.equal(shouldRunSync(10, null, now), false, '30분 미만 설정은 거부'); assert.equal(shouldRunSync(60, null, now), true, '이력 없으면 시작');
+  assert.equal(shouldRunSync(60, ago(59), now), false); assert.equal(shouldRunSync(60, ago(60), now), true); assert.equal(shouldRunSync(1440, ago(600), now), false);
+  assert.equal(shouldRunSync(30, ago(31, '진행중'), now), true, '30분 넘게 진행중이면 멈춘 것으로 보고 재시작'); assert.equal(shouldRunSync(30, ago(10, '진행중'), now), false);
+  assert.equal(shouldRunSync(60, ago(120, '실패'), now), true, '실패 후에도 다음 주기에 재시도');
 });

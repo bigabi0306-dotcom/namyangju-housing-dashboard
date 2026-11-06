@@ -26,7 +26,7 @@ export function buildPropertyWhere(sp: PropSP, userId: number): Prisma.PropertyW
   const pmin = sp.pmin?.trim() ? parseKRW(sp.pmin) : null, pmax = sp.pmax?.trim() ? parseKRW(sp.pmax) : null;
   if (pmin !== null || pmax !== null) w.price = { ...(pmin !== null ? { gte: BigInt(pmin) } : {}), ...(pmax !== null ? { lte: BigInt(pmax) } : {}) };
   const amin = numOrNull(sp.amin), amax = numOrNull(sp.amax);
-  if (amin !== null || amax !== null) w.landAreaM2 = { ...(amin !== null ? { gte: amin } : {}), ...(amax !== null ? { lte: amax } : {}) };
+  if (amin !== null || amax !== null) { const r = { ...(amin !== null ? { gte: amin } : {}), ...(amax !== null ? { lte: amax } : {}) }; and.push({ OR: [{ landAreaM2: r }, { exclusiveAreaM2: r }] }); } // 대지면적 또는 전용면적
   const from = dayStart(sp.from), to = dayStart(sp.to);
   if (from || to) w.createdAt = { ...(from ? { gte: from } : {}), ...(to ? { lt: new Date(to.getTime() + 864e5) } : {}) };
   if (sp.assignee === 'me') w.assigneeId = userId; else if (sp.assignee && /^\d+$/.test(sp.assignee)) w.assigneeId = Number(sp.assignee);

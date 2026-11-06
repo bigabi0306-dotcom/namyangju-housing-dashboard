@@ -50,7 +50,7 @@ export async function saveProperty(id: number | null, _: unknown, fd: FormData) 
       lat: coord.lat, lng: coord.lng,
       ...base.data, subCategory: str(fd.get('subCategory')), status: String(fd.get('status') || '신규'),
       lotNumber: str(fd.get('lotNumber')), publicAddress: str(fd.get('publicAddress')), addressDetail: str(fd.get('addressDetail')),
-      landAreaM2: area(fd, 'landAreaM2'), totalFloorAreaM2: area(fd, 'totalFloorAreaM2'), buildingAreaM2: area(fd, 'buildingAreaM2'),
+      landAreaM2: area(fd, 'landAreaM2'), exclusiveAreaM2: area(fd, 'exclusiveAreaM2'), totalFloorAreaM2: area(fd, 'totalFloorAreaM2'), buildingAreaM2: area(fd, 'buildingAreaM2'),
       landCategory: str(fd.get('landCategory')), zoning: str(fd.get('zoning')), roadCondition: str(fd.get('roadCondition')),
       floors: str(fd.get('floors')), buildingUse: str(fd.get('buildingUse')), parking: str(fd.get('parking')),
       largeTruck: fd.get('largeTruck') === 'on' ? true : null,

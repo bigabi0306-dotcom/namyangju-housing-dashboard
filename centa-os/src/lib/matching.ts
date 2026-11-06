@@ -9,7 +9,7 @@ export type ClientReq = {
 };
 export type PropFacts = {
   region: string; category: string; dealType: string; price?: number | null; deposit?: number | null;
-  landAreaM2?: number | null; buildingAreaM2?: number | null; totalFloorAreaM2?: number | null; largeTruck?: boolean | null;
+  landAreaM2?: number | null; buildingAreaM2?: number | null; totalFloorAreaM2?: number | null; exclusiveAreaM2?: number | null; largeTruck?: boolean | null;
 };
 export type MatchResult = { score: number; reasons: string[]; mismatches: string[]; mustFail: boolean };
 
@@ -31,7 +31,7 @@ export function matchScore(c: ClientReq, p: PropFacts, w: MatchWeights = DEFAULT
     add(w.price, true, ok, '희망가격 범위 이내', `가격: 매물 ${pv?.toLocaleString('ko-KR')}원이 희망범위 밖`, true);
   }
   if (c.wantAreaMin != null || c.wantAreaMax != null) {
-    const a = p.landAreaM2 ?? p.totalFloorAreaM2 ?? p.buildingAreaM2 ?? null;
+    const a = p.landAreaM2 ?? p.totalFloorAreaM2 ?? p.exclusiveAreaM2 ?? p.buildingAreaM2 ?? null;
     const ok = a == null ? null : (c.wantAreaMax == null || a <= c.wantAreaMax) && (c.wantAreaMin == null || a >= c.wantAreaMin);
     add(w.area, true, ok, '희망면적 범위 이내', `면적: 매물 ${a}㎡가 희망범위 밖`);
   }
