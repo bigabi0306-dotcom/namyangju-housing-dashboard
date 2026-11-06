@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/auth';
 import { can } from '@/lib/rbac';
 import { audit } from '@/lib/audit';
 import { PrintButton } from '@/components/print-button';
+import { BrandMark } from '@/components/brand';
 import { formatKRW, formatArea, m2ToPyeong, kstDateStr } from '@/lib/format';
 
 type SP = Record<string, string | string[] | undefined>;
@@ -27,7 +28,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
       {can(me.role, 'property.write') && <><Link href={`?${qsBase}&v=client`} className={client && !showPrice ? 'btn' : 'btn-ghost'}>고객용 소개자료(가격 비공개)</Link><Link href={`?${qsBase}&v=client&price=1`} className={client && showPrice ? 'btn' : 'btn-ghost'}>고객용 소개자료(가격 공개)</Link></>}<PrintButton /></div>);
   if (client) return (
     <div className="space-y-4">{toolbar}
-      <div className="card"><h1 className="text-xl font-extrabold text-brand">센타부동산 · 땅폴레옹 추천 매물</h1><p className="text-xs text-gray-500">작성일 {kstDateStr()} · 문의 010-8848-7727 · 남양주·구리·포천 및 경기 동북부</p></div>
+      <div className="card flex items-center gap-3"><BrandMark size={64} /><div><h1 className="text-xl font-extrabold text-brand">센타부동산 · 땅폴레옹 추천 매물</h1><p className="text-xs text-gray-500">작성일 {kstDateStr()} · 문의 010-8848-7727 · 남양주·구리·포천 및 경기 동북부</p></div></div>
       {props.map((p, i) => (
         <div key={p.id} className="card space-y-2 break-inside-avoid"><h2 className="text-lg font-bold">{i + 1}. {p.title}</h2>
           {p.images.length > 0 && <div className="flex gap-2">{p.images.map((im) => /* eslint-disable-next-line @next/next/no-img-element */ <img key={im.id} src={`/api/files/image/${im.id}`} alt={`${p.title} 사진`} className="h-32 w-auto rounded-lg object-cover" />)}</div>}

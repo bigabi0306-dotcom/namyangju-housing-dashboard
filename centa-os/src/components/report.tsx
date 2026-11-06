@@ -1,4 +1,5 @@
 import { formatKRW } from '@/lib/format';
+import { BrandMark } from './brand';
 const pc = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? '-' : `${(v * 100).toFixed(2)}%`);
 export type ReportVariant = 'client' | 'investor';
 export function Report({ a, variant }: { a: any; variant: ReportVariant }) {
@@ -6,8 +7,8 @@ export function Report({ a, variant }: { a: any; variant: ReportVariant }) {
   const row = (k: string, v: string) => <tr key={k} className="border-t"><td className="td text-gray-600">{k}</td><td className="td text-right font-semibold">{v}</td></tr>;
   return (
     <div className="space-y-4">
-      <div className="card"><h2 className="text-lg font-bold">{a.property.title} — {r.type} ({inv ? '투자자용 상세 보고서' : '고객 브리핑 보고서'})</h2>
-        <p className="text-xs text-gray-500">분석 기준일 {r.asOf} · 작성 {new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium' }).format(a.asOf)} · 센타부동산 / 땅폴레옹</p></div>
+      <div className="card flex items-start gap-3"><BrandMark size={48} /><div><h2 className="text-lg font-bold">{a.property.title} — {r.type} ({inv ? '투자자용 상세 보고서' : '고객 브리핑 보고서'})</h2>
+        <p className="text-xs text-gray-500">분석 기준일 {r.asOf} · 작성 {new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium' }).format(a.asOf)} · 센타부동산 / 땅폴레옹</p></div></div>
       {r.sections.map((s: any) => <div key={s.key} className="card"><div className="flex items-center gap-2"><h3 className="font-bold">{s.title}</h3><span className={`badge ${s.status === '자료 없음' ? '!bg-gray-200' : s.status === '확인 필요' ? '!bg-amber-100' : '!bg-green-100'}`}>{s.status}</span><span className="badge">{s.kind}</span></div>
         <p className="mt-1 whitespace-pre-wrap text-sm">{s.text}</p><p className="mt-1 text-xs text-gray-400">출처: {s.source} · 기준일 {s.asOf}</p></div>)}
       {r.checklist.length > 0 && <div className="card"><h3 className="mb-1 font-bold">{r.type} 확인 항목</h3><table className="w-full text-sm"><tbody>{r.checklist.map((c: any) => <tr key={c.item} className="border-t"><td className="td w-40 font-semibold">{c.item}</td><td className="td w-24">{c.status}</td><td className="td">{c.note || '-'}</td></tr>)}</tbody></table></div>}

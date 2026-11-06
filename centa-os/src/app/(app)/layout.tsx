@@ -5,6 +5,7 @@ import { NavList } from '@/components/nav';
 import { MobileNav } from '@/components/ui';
 import { ROLES, type RoleKey } from '@/lib/rbac';
 import { Plus, LogOut, Bell } from 'lucide-react';
+import { Brand } from '@/components/brand';
 import { db } from '@/lib/db';
 import { generateReminders, generateContractAlerts } from '@/lib/notify';
 
@@ -13,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   await generateReminders(me.id);
   await generateContractAlerts(me.id, me.role);
   const unread = await db.notification.count({ where: { userId: me.id, read: false } });
-  const brand = <div className="mb-4 px-2 text-lg font-extrabold text-brand">CENTA <span className="text-ink">REALTY OS</span></div>;
+  const brand = <Brand />;
   return (
     <div className="min-h-screen lg:flex">
       <aside className="hidden w-60 shrink-0 border-r bg-white p-3 lg:block">{brand}<NavList role={me.role} /></aside>
