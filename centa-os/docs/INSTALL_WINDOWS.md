@@ -6,7 +6,7 @@
 > - **이 PC가 고장나면 데이터도 사라집니다.** 설치 후 반드시 §7 백업을 하고, 백업 파일을 외장하드나 클라우드에 따로 복사하세요.
 
 ## 1. 준비물 설치 (한 번만)
-1. **Node.js 22 LTS** — https://nodejs.org 에서 LTS 버전 설치(기본 옵션 그대로).
+1. **Node.js LTS** — https://nodejs.org 에서 LTS 버전 설치(기본 옵션 그대로). Node 22와 26에서 동작을 확인했습니다(그 외 버전은 미확인).
 2. **PostgreSQL 16** — https://www.postgresql.org/download/windows/ → 설치 프로그램 실행.
    - 설치 중 `postgres` 관리자 **비밀번호를 정해서 꼭 적어 두세요.** 포트는 5432 그대로.
    - 설치 끝의 "Stack Builder"는 건너뛰어도 됩니다.
