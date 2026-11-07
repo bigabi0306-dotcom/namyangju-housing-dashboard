@@ -3,13 +3,13 @@ import { db } from '@/lib/db';
 import { requireUser } from '@/lib/auth';
 import { can } from '@/lib/rbac';
 import { relatedOptions } from '@/lib/options';
-import { WorkLogForm } from '@/components/worklog-form';
+import { WorkLogForm, WORK_TYPES } from '@/components/worklog-form';
 import { ActionForm, Field } from '@/components/ui';
 import { addTask, assignTask, postponeTask, toggleTask } from '@/app/actions-work';
 import { fmtDate, kstDateStr } from '@/lib/format';
 
 const DAY = 864e5;
-export default async function Work({ searchParams }: { searchParams: Promise<{ p?: string; t?: string }> }) {
+export default async function Work({ searchParams }: { searchParams: Promise<{ p?: string; t?: string; lu?: string; lt?: string; ld?: string }> }) {
   const me = await requireUser('work.read');
   const sp = await searchParams;
   const canW = can(me.role, 'work.write');
@@ -17,10 +17,13 @@ export default async function Work({ searchParams }: { searchParams: Promise<{ p
   const today = kstDateStr(); const start0 = new Date(`${today}T00:00:00+09:00`);
   const from = new Date(start0.getTime() - (period === 'day' ? 0 : period === 'week' ? 6 : 29) * DAY);
   const mineOnly = me.role !== 'OWNER' && me.role !== 'VIEWER' ? { userId: me.id } : {};
+  const seesAll = me.role === 'OWNER' || me.role === 'VIEWER';
+  const ld = [7, 14, 30, 90].includes(Number(sp.ld)) ? Number(sp.ld) : 14;
+  const logWhere = { ...mineOnly, ...(seesAll && /^\d+$/.test(sp.lu ?? '') ? { userId: Number(sp.lu) } : {}), ...(WORK_TYPES.includes(sp.lt ?? '') ? { type: sp.lt } : {}), date: { gte: new Date(start0.getTime() - (ld - 1) * DAY) } };
   const [opts, tasks, logs, repLogs] = await Promise.all([
     relatedOptions(),
     db.task.findMany({ where: { done: sp.t === 'done' }, include: { assignee: true, client: true }, orderBy: [{ needsCheck: 'desc' }, { dueDate: 'asc' }], take: 100 }),
-    db.workLog.findMany({ orderBy: { date: 'desc' }, take: 30, include: { user: true, client: true, property: true }, where: mineOnly }),
+    db.workLog.findMany({ orderBy: [{ date: 'desc' }, { id: 'desc' }], take: 150, include: { user: true, client: true, property: true }, where: logWhere }),
     db.workLog.findMany({ where: { date: { gte: from }, ...mineOnly }, include: { user: true } }),
   ]);
   const byType: Record<string, number> = {}, byUser: Record<string, { n: number; done: number }> = {};
@@ -49,10 +52,26 @@ export default async function Work({ searchParams }: { searchParams: Promise<{ p
         <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm">{report}</pre>
         {me.role === 'OWNER' && <table className="mt-3 text-sm"><thead><tr><th className="th">담당자</th><th className="th">업무</th><th className="th">완료</th></tr></thead><tbody>{Object.entries(byUser).map(([n, u]) => <tr key={n} className="border-t"><td className="td">{n}</td><td className="td">{u.n}</td><td className="td">{u.done}</td></tr>)}</tbody></table>}
         <p className="mt-2 text-xs text-gray-400">AI 요약·후속업무 자동 제안은 AI API 연동(승인 UI 포함) 후 제공됩니다. 현재는 입력된 기록의 단순 집계입니다.</p></section>
-      <section className="card overflow-x-auto"><h2 className="mb-2 font-bold">최근 업무일지</h2>
-        <table className="w-full min-w-[640px] text-sm"><thead><tr>{['날짜', '담당', '유형', '고객', '매물', '내용', '결과', '완료'].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
-          <tbody>{logs.map((l) => <tr key={l.id} className="border-t align-top"><td className="td">{fmtDate(l.date)}</td><td className="td">{l.user.name}</td><td className="td">{l.type}</td><td className="td">{l.client ? <Link className="hover:text-brand" href={`/clients/${l.clientId}`}>{l.client.name}</Link> : '-'}</td><td className="td">{l.property ? <Link className="hover:text-brand" href={`/properties/${l.propertyId}`}>{l.property.title}</Link> : '-'}</td><td className="td">{l.content}</td><td className="td">{l.result ?? '-'}</td><td className="td">{l.done ? '✔' : '미완료'}{l.needsCheck && ' ⚠'}</td></tr>)}
-            {logs.length === 0 && <tr><td colSpan={8} className="td text-gray-500">업무일지가 없습니다.</td></tr>}</tbody></table></section>
+      <section className="card space-y-3"><div className="flex flex-wrap items-center gap-2"><h2 className="font-bold">업무일지 목록 <span className="text-sm font-normal text-gray-500">({logs.length}건)</span></h2>
+        <Link href="/team" className="btn-ghost !py-1 text-xs">👥 담당자별 현황 한눈에 보기</Link></div>
+        <form className="flex flex-wrap items-end gap-2" aria-label="업무일지 필터">
+          {seesAll && <label className="text-xs">담당자<select name="lu" defaultValue={sp.lu ?? ''} className="input !w-32 !py-1"><option value="">전체</option>{opts.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>}
+          <label className="text-xs">업무유형<select name="lt" defaultValue={sp.lt ?? ''} className="input !w-36 !py-1"><option value="">전체</option>{WORK_TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
+          <label className="text-xs">기간<select name="ld" defaultValue={ld} className="input !w-28 !py-1">{[7, 14, 30, 90].map((d) => <option key={d} value={d}>최근 {d}일</option>)}</select></label>
+          <button className="btn !py-1">적용</button><Link href="/work" className="btn-ghost !py-1">초기화</Link></form>
+        {logs.length === 0 ? <p className="text-sm text-gray-500">조건에 맞는 업무일지가 없습니다.</p> : (() => {
+          const groups = new Map<string, typeof logs>(); for (const l of logs) { const k = kstDateStr(l.date); groups.set(k, [...(groups.get(k) ?? []), l]); }
+          return <div className="space-y-4">{[...groups.entries()].map(([day, list]) => (
+            <div key={day}><h3 className="mb-1 flex items-center gap-2 border-b pb-1 text-sm font-bold">{new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' }).format(list[0].date)}{day === today && <span className="badge !bg-brand-light text-brand">오늘</span>}<span className="text-xs font-normal text-gray-500">{list.length}건</span></h3>
+              <ul className="space-y-2">{list.map((l) => (
+                <li key={l.id} className={`rounded-lg border p-2 text-sm ${l.needsCheck ? 'border-amber-400 bg-amber-50' : ''}`}>
+                  <div className="flex flex-wrap items-center gap-1"><span className="badge !bg-brand-light text-brand">{l.user.name}</span><span className="badge">{l.type}</span>{l.client && <Link className="text-xs text-brand underline" href={`/clients/${l.clientId}`}>{l.client.name}</Link>}{l.property && <Link className="text-xs text-brand underline" href={`/properties/${l.propertyId}`}>{l.property.title}</Link>}
+                    <span className="ml-auto flex gap-1">{!l.done && <span className="badge !bg-amber-100">미완료</span>}{l.needsCheck && <span className="badge !bg-amber-100">확인 필요</span>}</span></div>
+                  <p className="mt-1 whitespace-pre-wrap">{l.content}</p>
+                  {(l.result || l.followUp) && <p className="mt-1 text-xs text-gray-600">{l.result && <>결과: {l.result}</>}{l.result && l.followUp && ' · '}{l.followUp && <span className="text-brand">후속: {l.followUp}</span>}</p>}
+                </li>))}</ul></div>))}</div>;
+        })()}
+      </section>
     </div>
   );
 }

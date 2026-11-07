@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Sparkles, Building2, Users, LineChart, NotebookPen, CalendarDays, FileSignature, Clapperboard, BarChart3, Settings } from 'lucide-react';
+import { Sparkles, Building2, Users, LineChart, NotebookPen, CalendarDays, FileSignature, Clapperboard, BarChart3, Settings, UserCheck } from 'lucide-react';
 import { can } from '@/lib/rbac';
 
 export const MENU = [
@@ -8,6 +8,7 @@ export const MENU = [
   { href: '/clients', label: '고객관리', icon: Users, perm: 'client.read', ready: true },
   { href: '/analysis', label: '물건분석', icon: LineChart, perm: 'analysis.read', ready: true },
   { href: '/work', label: '업무일지', icon: NotebookPen, perm: 'work.read', ready: true },
+  { href: '/team', label: '담당자 현황', icon: UserCheck, perm: 'work.read', ready: true },
   { href: '/calendar', label: '일정관리', icon: CalendarDays, perm: 'calendar.read', ready: true },
   { href: '/contracts', label: '계약관리', icon: FileSignature, perm: 'contract.read', ready: true },
   { href: '/content', label: '콘텐츠 스튜디오', icon: Clapperboard, perm: 'content.read', ready: true },
