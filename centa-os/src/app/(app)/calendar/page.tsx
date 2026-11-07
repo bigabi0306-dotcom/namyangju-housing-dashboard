@@ -30,9 +30,9 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
   const row = (o: (typeof occ)[number]) => (
     <li key={`${o.id}-${o.start.getTime()}`} className={`rounded-lg border p-2 text-sm ${o.done ? 'opacity-50 line-through' : ''} ${o.conflict ? 'border-red-400 bg-red-50' : ''}`}>
       <div className="flex items-center gap-1">{o.conflict && <AlertTriangle size={14} className="text-red-600" aria-label="일정 충돌" />}<span className="badge">{o.type}</span>
-        <Link href={canW ? `/calendar/${o.id}` : '#'} className="font-semibold hover:text-brand">{o.title}</Link>{o.repeat && <span className="text-xs text-gray-500">↻{o.repeat}</span>}</div>
+        <Link href={canW ? `/calendar/${o.id}` : '#'} className="font-semibold hover:text-brand-ink">{o.title}</Link>{o.repeat && <span className="text-xs text-gray-500">↻{o.repeat}</span>}</div>
       <div className="text-xs text-gray-500">{fmtDateTime(o.start)} · {o.base.assignee?.name ?? '담당 미지정'}{o.base.client && ` · ${o.base.client.name}`}{o.base.property && ` · ${o.base.property.title}`}</div>
-      {canW && !o.repeat && <form action={toggleEventDone.bind(null, o.id)}><button className="mt-1 text-xs text-brand underline">{o.done ? '완료 취소' : '완료 표시'}</button></form>}</li>);
+      {canW && !o.repeat && <form action={toggleEventDone.bind(null, o.id)}><button className="mt-1 text-xs text-brand-ink underline">{o.done ? '완료 취소' : '완료 표시'}</button></form>}</li>);
   const byDay = new Map<string, typeof occ>(); for (const o of occ) { const k = kstDateStr(o.start); byDay.set(k, [...(byDay.get(k) ?? []), o]); }
   const days: string[] = []; for (let d = from.getTime(); d < to.getTime(); d += DAY) days.push(kstDateStr(new Date(d)));
   const today = kstDateStr();

@@ -67,7 +67,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
       <h2 className="pt-2 text-lg font-bold">CSV로 가져오기</h2>
       <div className="card space-y-1 text-sm text-gray-700">
         <p>홈페이지 자동 연동이 어려울 때는 관리자 화면의 CSV/Excel 내보내기를 받아 아래에 올려주세요. 로그인 우회·접근제어 회피 방식의 수집은 구현하지 않습니다.</p>
-        <p><Link href="/properties/import/template" className="text-brand underline">양식 CSV 내려받기</Link> · 한글 엑셀 CSV(EUC-KR)도 자동 인식합니다.</p>
+        <p><Link href="/properties/import/template" className="text-brand-ink underline">양식 CSV 내려받기</Link> · 한글 엑셀 CSV(EUC-KR)도 자동 인식합니다.</p>
         <p>필수 열: <code>원본매물번호, 매물명, 주소</code> / 선택: 종류, 거래유형, 지역, 지번, 가격, 보증금, 월세, 토지면적, 용도지역, 지목, 상태</p>
         <p>내부 메모·고객 연결·분석은 가져오기로 덮어쓰지 않으며, 파일에서 사라진 매물은 삭제하지 않고 &apos;확인 대기&apos;로 표시합니다.</p>
       </div>
@@ -81,7 +81,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
       {res && <div className={`card text-sm ${res.errors.length ? 'border-amber-400' : 'border-green-400'}`}><b>{res.dry ? '미리보기 결과 (저장되지 않음)' : '가져오기 완료'}</b>: 신규 {res.added} · 갱신 {res.updated} · 가격변경 {res.priceChanged} · 기존매물 연결 {res.duplicates} · 확인대기 {res.missing}{res.errors.length > 0 && <ul className="mt-1 list-disc pl-5 text-red-600">{res.errors.slice(0, 20).map((e: string) => <li key={e}>{e}</li>)}</ul>}{res.dry && <p className="mt-1 text-gray-500">문제가 없으면 &apos;미리보기만&apos; 체크를 끄고 다시 실행하세요.</p>}</div>}
       <div className="card overflow-x-auto"><h2 className="mb-2 font-bold">동기화 이력</h2>
         <table className="w-full text-sm"><thead><tr>{['시작', '출처', '신규', '갱신', '가격변경', '중복연결', '확인대기', '상태', '오류'].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
-          <tbody>{logs.map((l) => <tr key={l.id} className="border-t"><td className="td">{fmtDateTime(l.startedAt)}</td><td className="td">{l.system}</td><td className="td">{l.added}</td><td className="td">{l.updated}</td><td className="td">{l.priceChanged}</td><td className="td">{l.duplicates}</td><td className="td">{l.missing}</td><td className="td">{l.status}</td><td className="td text-xs text-red-600">{l.errors}</td></tr>)}
+          <tbody>{logs.map((l) => <tr key={l.id} className="border-t"><td className="td">{fmtDateTime(l.startedAt)}</td><td className="td">{l.system}</td><td className="td">{l.added}</td><td className="td">{l.updated}</td><td className="td">{l.priceChanged}</td><td className="td">{l.duplicates}</td><td className="td">{l.missing}</td><td className="td">{l.status}</td><td className="td td-wrap min-w-[14rem] text-xs text-red-600">{l.errors}</td></tr>)}
             {logs.length === 0 && <tr><td colSpan={9} className="td text-gray-500">아직 동기화 이력이 없습니다.</td></tr>}</tbody></table></div>
     </div>
   );

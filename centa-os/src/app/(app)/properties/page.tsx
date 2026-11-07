@@ -28,7 +28,7 @@ export default async function Properties({ searchParams }: { searchParams: Promi
     <select name={name} defaultValue={sp[name] ?? ''} className="input !w-auto"><option value="">{label}</option>{opts.map((o) => <option key={o}>{o}</option>)}</select>);
   const txt = (name: keyof PropSP, ph: string, w = '!w-32') => <input name={name} defaultValue={sp[name] ?? ''} className={`input ${w}`} placeholder={ph} />;
   const star = (id: number) => (
-    <form action={toggleFavorite.bind(null, id)}><button aria-label={favIds.has(id) ? '즐겨찾기 해제' : '즐겨찾기'} className="p-1"><Star size={16} className={favIds.has(id) ? 'fill-brand text-brand' : 'text-gray-400'} /></button></form>);
+    <form action={toggleFavorite.bind(null, id)}><button aria-label={favIds.has(id) ? '즐겨찾기 해제' : '즐겨찾기'} className="p-1"><Star size={16} className={favIds.has(id) ? 'fill-brand text-brand-ink' : 'text-gray-400'} /></button></form>);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2"><h1 className="text-xl font-bold">매물장 <span className="text-sm font-normal text-gray-500">({list.length}건)</span></h1>
@@ -39,7 +39,7 @@ export default async function Properties({ searchParams }: { searchParams: Promi
           {txt('q', '매물명·주소·번호', '!w-48')}{sel('category', CATEGORIES, '전체 종류')}{sel('dealType', DEAL_TYPES, '거래유형')}{sel('status', PROP_STATUS, '상태')}{sel('region', REGIONS, '지역')}
           {txt('pmin', '최저가 (예 3억)', '!w-36')}{txt('pmax', '최고가 (예 10억)', '!w-36')}{txt('amin', '최소㎡', '!w-24')}{txt('amax', '최대㎡', '!w-24')}
         </div>
-        <details open={!!(sp.zoning || sp.landCategory || sp.buildingUse || sp.road || sp.from || sp.to || sp.assignee)}><summary className="cursor-pointer text-sm text-brand">상세 검색 (용도지역·지목·건물용도·도로조건·등록일·담당자)</summary>
+        <details open={!!(sp.zoning || sp.landCategory || sp.buildingUse || sp.road || sp.from || sp.to || sp.assignee)}><summary className="cursor-pointer text-sm text-brand-ink">상세 검색 (용도지역·지목·건물용도·도로조건·등록일·담당자)</summary>
           <div className="mt-2 flex flex-wrap items-end gap-2">{txt('zoning', '용도지역')}{txt('landCategory', '지목')}{txt('buildingUse', '건물용도')}{txt('road', '도로조건')}
             <label className="text-xs">등록일 from<input type="date" name="from" defaultValue={sp.from} className="input" /></label><label className="text-xs">to<input type="date" name="to" defaultValue={sp.to} className="input" /></label>
             <select name="assignee" defaultValue={sp.assignee ?? ''} className="input !w-auto"><option value="">전체 담당자</option><option value="me">내 담당</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div></details>
@@ -59,7 +59,7 @@ export default async function Properties({ searchParams }: { searchParams: Promi
               <tr key={p.id} className="hover:bg-brand-light/30">
                 <td className="td"><div className="flex items-center gap-1"><input form="compare" type="checkbox" name="id" value={p.id} aria-label={`${p.title} 비교 선택`} />{star(p.id)}</div></td>
                 <td className="td text-xs text-gray-500">{p.code}</td>
-                <td className="td"><Link href={`/properties/${p.id}`} className="font-semibold hover:text-brand">{p.title}</Link>{p.isTestData && <span className="badge ml-1">테스트</span>}{p.needsReview && <span className="badge ml-1 !bg-amber-100">확인대기</span>}</td>
+                <td className="td td-wrap min-w-[11rem]"><Link href={`/properties/${p.id}`} className="font-semibold hover:text-brand-ink">{p.title}</Link>{p.isTestData && <span className="badge ml-1">테스트</span>}{p.needsReview && <span className="badge ml-1 !bg-amber-100">확인대기</span>}</td>
                 <td className="td">{p.category}</td><td className="td">{p.dealType}</td>
                 <td className="td">{p.dealType === '월세' ? `${formatKRW(p.deposit)} / ${formatKRW(p.monthlyRent)}` : p.dealType === '전세' ? formatKRW(p.deposit) : formatKRW(p.price)}</td>
                 <td className="td">{formatArea(p.landAreaM2 ?? p.exclusiveAreaM2)}</td><td className="td"><span className="badge">{p.status}</span></td><td className="td">{p.region}</td></tr>))}
@@ -67,7 +67,7 @@ export default async function Properties({ searchParams }: { searchParams: Promi
         ) : view === 'card' ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{list.map((p) => (
             <div key={p.id} className="card hover:border-brand"><div className="flex items-center justify-between"><label className="flex items-center gap-1 text-xs text-gray-500"><input form="compare" type="checkbox" name="id" value={p.id} aria-label={`${p.title} 비교 선택`} />비교</label>{star(p.id)}</div>
-              <Link href={`/properties/${p.id}`} className="block"><div className="text-xs text-gray-500">{p.code} · {p.category} · {p.dealType}</div><div className="font-bold">{p.title}</div><div className="text-brand">{formatKRW(p.price ?? p.deposit)}</div><div className="text-xs text-gray-600">{p.region} · {formatArea(p.landAreaM2 ?? p.exclusiveAreaM2)}</div><span className="badge mt-1">{p.status}</span></Link></div>))}</div>
+              <Link href={`/properties/${p.id}`} className="block"><div className="text-xs text-gray-500">{p.code} · {p.category} · {p.dealType}</div><div className="font-bold">{p.title}</div><div className="text-brand-ink">{formatKRW(p.price ?? p.deposit)}</div><div className="text-xs text-gray-600">{p.region} · {formatArea(p.landAreaM2 ?? p.exclusiveAreaM2)}</div><span className="badge mt-1">{p.status}</span></Link></div>))}</div>
         ) : null}
         <div className="flex flex-wrap items-center gap-2"><button form="compare" className="btn-ghost">선택 매물 비교 (2~5개)</button><span className="text-xs text-gray-400">비교 화면에서 고객용 소개자료를 인쇄할 수 있습니다.</span></div>
       </div>

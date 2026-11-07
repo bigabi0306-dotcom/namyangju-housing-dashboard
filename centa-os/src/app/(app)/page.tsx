@@ -56,14 +56,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
         </div>
         <ul className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
           {[['오늘 일정', c.events], ['연락 예정 고객', c.dueClients], ['신규 매물(7일)', c.newProps], ['가격 변경(7일)', c.priceChanges], ['계약·확인 사항', c.contractChecks], ['발행 예정 콘텐츠', c.contentsDue]].map(([k, v]) => (
-            <li key={k as string} className="rounded-lg bg-white p-2 text-center"><div className="text-xl font-bold text-brand">{v}</div><div className="text-xs text-gray-600">{k}</div></li>))}
+            <li key={k as string} className="rounded-lg bg-white p-2 text-center"><div className="text-xl font-bold text-brand-ink">{v}</div><div className="text-xs text-gray-600">{k}</div></li>))}
         </ul>
         <h2 className="mb-2 mt-4 text-sm font-bold">AI 추천 업무 ({b.recs.length})</h2>
         {b.recs.length === 0 && <p className="text-sm text-gray-500">현재 처리가 필요한 추천 업무가 없습니다.</p>}
         <ul className="space-y-2">{b.recs.slice(0, 15).map((r) => (
           <li key={r.key} className="flex flex-wrap items-center gap-2 rounded-lg bg-white p-2 text-sm">
             <span className={`badge ${IMP[r.importance][1]}`}>{IMP[r.importance][0]}</span>
-            <Link href={r.href} className="font-semibold hover:text-brand">{r.title}</Link>
+            <Link href={r.href} className="font-semibold hover:text-brand-ink">{r.title}</Link>
             <span className="text-xs text-gray-500">{r.reason}</span>
             <span className="ml-auto flex gap-1">
               <form action={briefingAction.bind(null, 'done', { taskId: r.taskId, clientId: r.clientId, priceHistoryId: r.priceHistoryId, visitId: r.visitId })}><button className="btn-ghost !px-2 !py-1 text-xs" title="완료 처리"><Check size={14} />완료</button></form>
@@ -87,9 +87,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ m
           {b.events.length === 0 ? <p className="text-sm text-gray-500">오늘 등록된 일정이 없습니다.</p> :
             <ul className="space-y-1 text-sm">{b.events.map((e) => <li key={e.id}>{fmtDateTime(e.startAt)} · <b>{e.type}</b> {e.title}</li>)}</ul>}</div>
         <div className="card"><h2 className="mb-2 font-bold">최근 상담 고객</h2>
-          <ul className="space-y-1 text-sm">{recentClients.map((x) => <li key={x.id}><Link className="hover:text-brand" href={`/clients/${x.id}`}>{x.name}</Link> <span className="badge">{x.stage}</span></li>)}{recentClients.length === 0 && <li className="text-gray-500">고객이 없습니다.</li>}</ul></div>
+          <ul className="space-y-1 text-sm">{recentClients.map((x) => <li key={x.id}><Link className="hover:text-brand-ink" href={`/clients/${x.id}`}>{x.name}</Link> <span className="badge">{x.stage}</span></li>)}{recentClients.length === 0 && <li className="text-gray-500">고객이 없습니다.</li>}</ul></div>
         <div className="card"><h2 className="mb-2 font-bold">신규 매물 (7일)</h2>
-          <ul className="space-y-1 text-sm">{b.newProps.map((p) => <li key={p.id}><Link className="hover:text-brand" href={`/properties/${p.id}`}>{p.title}</Link> · {p.category} · {formatKRW(p.price)}</li>)}{b.newProps.length === 0 && <li className="text-gray-500">신규 등록 매물이 없습니다.</li>}</ul></div>
+          <ul className="space-y-1 text-sm">{b.newProps.map((p) => <li key={p.id}><Link className="hover:text-brand-ink" href={`/properties/${p.id}`}>{p.title}</Link> · {p.category} · {formatKRW(p.price)}</li>)}{b.newProps.length === 0 && <li className="text-gray-500">신규 등록 매물이 없습니다.</li>}</ul></div>
         <div className="card"><h2 className="mb-2 font-bold">매물 종류별 / 지역별 현황</h2>
           <ul className="space-y-1 text-sm">{byCat.map((x) => <li key={x.category}>{x.category}: <b>{x._count}</b></li>)}</ul>
           <hr className="my-2" /><ul className="flex flex-wrap gap-2 text-sm">{byRegion.map((x) => <li key={x.region} className="badge">{x.region} {x._count}</li>)}</ul></div>

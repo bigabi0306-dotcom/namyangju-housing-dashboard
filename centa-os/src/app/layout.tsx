@@ -3,7 +3,8 @@ import type { Metadata, Viewport } from 'next';
 export const metadata: Metadata = { title: 'CENTA REALTY OS', description: '센타부동산 AI 통합 업무관리센터', manifest: '/manifest.webmanifest', icons: { icon: [{ url: '/brand/favicon.png', type: 'image/png' }, { url: '/icon.svg', type: 'image/svg+xml' }], apple: '/brand/apple-touch-icon.png' } };
 export const viewport: Viewport = { themeColor: '#E57E9B', width: 'device-width', initialScale: 1 };
 export default function Root({ children }: { children: React.ReactNode }) {
-  return (<html lang="ko"><body>{children}
+  return (<html lang="ko"><head><link rel="stylesheet" href="/fonts/pretendard/pretendardvariable-dynamic-subset.css" />
+    <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('centa_text');if(t==='large'||t==='xlarge')document.documentElement.setAttribute('data-text',t)}catch(e){}" }} /></head><body>{children}
     <script dangerouslySetInnerHTML={{ __html: "if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}" }} />
   </body></html>);
 }

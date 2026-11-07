@@ -6,6 +6,7 @@ import { MobileNav } from '@/components/ui';
 import { ROLES, type RoleKey } from '@/lib/rbac';
 import { Plus, LogOut, Bell } from 'lucide-react';
 import { Brand } from '@/components/brand';
+import { TextSize } from '@/components/text-size';
 import { db } from '@/lib/db';
 import { generateReminders, generateContractAlerts } from '@/lib/notify';
 
@@ -24,7 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action="/properties" className="flex-1"><input name="q" className="input" placeholder="전역 검색 (매물명·주소·번호)" /></form>
           <Link href="/properties/new" className="btn hidden sm:inline-flex"><Plus size={14} />매물</Link>
           <Link href="/clients/new" className="btn-ghost hidden sm:inline-flex"><Plus size={14} />고객</Link>
-          <Link href="/notifications" className="btn-ghost relative" aria-label="알림"><Bell size={16} />{unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-brand px-1 text-[10px] text-white">{unread}</span>}</Link>
+          <div className="hidden sm:block"><TextSize /></div>
+          <Link href="/notifications" className="btn-ghost relative" aria-label="알림"><Bell size={16} />{unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-brand-btn px-1 text-[0.7rem] text-white">{unread}</span>}</Link>
           <Link href="/account" className="hidden text-right text-xs sm:block"><div className="font-semibold">{me.name}</div><div className="text-gray-500">{ROLES[me.role as RoleKey]}</div></Link>
           <form action={logout}><button className="btn-ghost" aria-label="로그아웃"><LogOut size={16} /></button></form>
         </header>

@@ -10,5 +10,5 @@ export function ChatBadge() {
     window.addEventListener('centa-chat-unread', onUnread);
     void poll(); const t = setInterval(poll, 8000); return () => { alive = false; clearInterval(t); window.removeEventListener('centa-chat-unread', onUnread); document.title = base; };
   }, []);
-  return n > 0 ? <span aria-label={`안 읽은 메시지 ${n}개`} className="ml-auto rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">{n > 99 ? '99+' : n}</span> : null;
+  return n > 0 ? <span aria-label={`안 읽은 메시지 ${n}개`} className="ml-auto rounded-full bg-red-500 px-1.5 text-[0.75rem] font-bold text-white">{n > 99 ? '99+' : n}</span> : null;
 }

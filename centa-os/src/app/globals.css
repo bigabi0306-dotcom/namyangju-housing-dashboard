@@ -1,14 +1,20 @@
 @tailwind base; @tailwind components; @tailwind utilities;
-body { @apply bg-gray-50 text-ink antialiased; font-family: 'Pretendard','Noto Sans KR','Malgun Gothic',system-ui,sans-serif; }
+/* 기본 글자 크기(보통). 사용자가 헤더의 '가' 버튼으로 크게/아주 크게 선택 (브라우저에 저장) */
+html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+html[data-text="large"] { font-size: 19px; }
+html[data-text="xlarge"] { font-size: 21px; }
+body { @apply bg-gray-50 text-ink; font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif; font-weight: 450; line-height: 1.65; letter-spacing: -0.005em; text-rendering: optimizeLegibility; }
+h1, h2, h3 { letter-spacing: -0.015em; }
 @layer components {
-  .card { @apply rounded-xl border border-gray-200 bg-white p-4 shadow-sm; }
-  .btn { @apply inline-flex items-center justify-center gap-1 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-50; }
-  .btn-ghost { @apply inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-100; }
-  .input { @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand; }
-  .label { @apply mb-1 block text-xs font-semibold text-gray-600; }
-  .th { @apply px-3 py-2 text-left text-xs font-semibold text-gray-500; }
-  .td { @apply px-3 py-2 text-sm; }
-  .badge { @apply inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700; }
+  .card { @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm; }
+  .btn { @apply inline-flex items-center justify-center gap-1 rounded-lg bg-brand-btn px-4 py-2 text-sm font-semibold text-white hover:bg-brand-ink disabled:opacity-50; }
+  .btn-ghost { @apply inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-100; }
+  .input { @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-[0.95rem] focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand; }
+  .label { @apply mb-1 block text-[0.82rem] font-semibold text-gray-600; }
+  .th { @apply whitespace-nowrap px-3 py-2.5 text-left text-[0.82rem] font-semibold text-gray-600; }
+  .td { @apply whitespace-nowrap px-3 py-2.5 text-[0.95rem]; }
+  .td-wrap { @apply whitespace-normal; }   /* 긴 글이 들어가는 칸 */
+  .badge { @apply inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-[0.78rem] font-medium text-gray-700; }
 }
 @media print { aside, header, .no-print { display: none !important; } body { background: #fff; } main { max-width: none !important; padding: 0 !important; } .card { box-shadow: none; break-inside: avoid; } }
 .centa-pin span { display: block; width: 22px; height: 22px; background: #E57E9B; border: 2px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 1px 4px rgba(0,0,0,.45); }

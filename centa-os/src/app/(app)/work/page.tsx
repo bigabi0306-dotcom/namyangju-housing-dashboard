@@ -36,7 +36,7 @@ export default async function Work({ searchParams }: { searchParams: Promise<{ p
     <div className="space-y-5">
       <h1 className="text-xl font-bold">업무일지·후속업무</h1>
       {canW && <details open className="card"><summary className="cursor-pointer font-bold">업무일지 작성</summary><div className="mt-3"><WorkLogForm opts={opts} /></div></details>}
-      <section className="card"><div className="mb-2 flex items-center justify-between"><h2 className="font-bold">후속업무 {sp.t === 'done' ? '(완료)' : '(미완료)'}</h2><Link href={sp.t === 'done' ? '/work' : '/work?t=done'} className="text-xs text-brand underline">{sp.t === 'done' ? '미완료 보기' : '완료 보기'}</Link></div>
+      <section className="card"><div className="mb-2 flex items-center justify-between"><h2 className="font-bold">후속업무 {sp.t === 'done' ? '(완료)' : '(미완료)'}</h2><Link href={sp.t === 'done' ? '/work' : '/work?t=done'} className="text-xs text-brand-ink underline">{sp.t === 'done' ? '미완료 보기' : '완료 보기'}</Link></div>
         <ul className="space-y-2">{tasks.map((t) => (
           <li key={t.id} className={`flex flex-wrap items-center gap-2 rounded-lg border p-2 text-sm ${t.needsCheck ? 'border-amber-400 bg-amber-50' : ''}`}>
             <span className={t.done ? 'line-through opacity-60' : 'font-semibold'}>{t.title}</span>{t.needsCheck && <span className="badge !bg-amber-100">확인 필요</span>}
@@ -46,7 +46,7 @@ export default async function Work({ searchParams }: { searchParams: Promise<{ p
               {!t.done && <form action={postponeTask.bind(null, t.id)}><button className="btn-ghost !px-2 !py-1 text-xs">내일로</button></form>}
               {me.role === 'OWNER' && <form action={assignTask.bind(null, t.id)} className="flex gap-1"><select name="assigneeId" defaultValue={t.assigneeId ?? ''} className="input !w-auto !py-1 text-xs"><option value="">미지정</option>{opts.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select><button className="btn-ghost !px-2 !py-1 text-xs">지정</button></form>}</span>}</li>))}
           {tasks.length === 0 && <li className="text-sm text-gray-500">후속업무가 없습니다.</li>}</ul>
-        {canW && <details className="mt-3"><summary className="cursor-pointer text-sm text-brand">+ 업무 직접 추가</summary><div className="mt-2"><ActionForm action={addTask} submit="추가"><div className="grid gap-2 sm:grid-cols-3"><Field label="업무명 *" className="sm:col-span-2"><input name="title" className="input" /></Field><Field label="기한"><input name="dueDate" type="date" className="input" /></Field></div><label className="flex items-center gap-1 text-sm"><input type="checkbox" name="needsCheck" />확인 필요</label></ActionForm></div></details>}
+        {canW && <details className="mt-3"><summary className="cursor-pointer text-sm text-brand-ink">+ 업무 직접 추가</summary><div className="mt-2"><ActionForm action={addTask} submit="추가"><div className="grid gap-2 sm:grid-cols-3"><Field label="업무명 *" className="sm:col-span-2"><input name="title" className="input" /></Field><Field label="기한"><input name="dueDate" type="date" className="input" /></Field></div><label className="flex items-center gap-1 text-sm"><input type="checkbox" name="needsCheck" />확인 필요</label></ActionForm></div></details>}
       </section>
       <section className="card"><div className="mb-2 flex flex-wrap items-center gap-2"><h2 className="font-bold">업무보고 (규칙 기반 집계)</h2>{[['day', '일간'], ['week', '주간'], ['month', '월간']].map(([v, l]) => <Link key={v} href={`/work?p=${v}`} className={period === v ? 'btn !py-1' : 'btn-ghost !py-1'}>{l}</Link>)}</div>
         <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm">{report}</pre>
@@ -62,13 +62,13 @@ export default async function Work({ searchParams }: { searchParams: Promise<{ p
         {logs.length === 0 ? <p className="text-sm text-gray-500">조건에 맞는 업무일지가 없습니다.</p> : (() => {
           const groups = new Map<string, typeof logs>(); for (const l of logs) { const k = kstDateStr(l.date); groups.set(k, [...(groups.get(k) ?? []), l]); }
           return <div className="space-y-4">{[...groups.entries()].map(([day, list]) => (
-            <div key={day}><h3 className="mb-1 flex items-center gap-2 border-b pb-1 text-sm font-bold">{new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' }).format(list[0].date)}{day === today && <span className="badge !bg-brand-light text-brand">오늘</span>}<span className="text-xs font-normal text-gray-500">{list.length}건</span></h3>
+            <div key={day}><h3 className="mb-1 flex items-center gap-2 border-b pb-1 text-sm font-bold">{new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' }).format(list[0].date)}{day === today && <span className="badge !bg-brand-light text-brand-ink">오늘</span>}<span className="text-xs font-normal text-gray-500">{list.length}건</span></h3>
               <ul className="space-y-2">{list.map((l) => (
                 <li key={l.id} className={`rounded-lg border p-2 text-sm ${l.needsCheck ? 'border-amber-400 bg-amber-50' : ''}`}>
-                  <div className="flex flex-wrap items-center gap-1"><span className="badge !bg-brand-light text-brand">{l.user.name}</span><span className="badge">{l.type}</span>{l.client && <Link className="text-xs text-brand underline" href={`/clients/${l.clientId}`}>{l.client.name}</Link>}{l.property && <Link className="text-xs text-brand underline" href={`/properties/${l.propertyId}`}>{l.property.title}</Link>}
+                  <div className="flex flex-wrap items-center gap-1"><span className="badge !bg-brand-light text-brand-ink">{l.user.name}</span><span className="badge">{l.type}</span>{l.client && <Link className="text-xs text-brand-ink underline" href={`/clients/${l.clientId}`}>{l.client.name}</Link>}{l.property && <Link className="text-xs text-brand-ink underline" href={`/properties/${l.propertyId}`}>{l.property.title}</Link>}
                     <span className="ml-auto flex gap-1">{!l.done && <span className="badge !bg-amber-100">미완료</span>}{l.needsCheck && <span className="badge !bg-amber-100">확인 필요</span>}</span></div>
                   <p className="mt-1 whitespace-pre-wrap">{l.content}</p>
-                  {(l.result || l.followUp) && <p className="mt-1 text-xs text-gray-600">{l.result && <>결과: {l.result}</>}{l.result && l.followUp && ' · '}{l.followUp && <span className="text-brand">후속: {l.followUp}</span>}</p>}
+                  {(l.result || l.followUp) && <p className="mt-1 text-xs text-gray-600">{l.result && <>결과: {l.result}</>}{l.result && l.followUp && ' · '}{l.followUp && <span className="text-brand-ink">후속: {l.followUp}</span>}</p>}
                 </li>))}</ul></div>))}</div>;
         })()}
       </section>

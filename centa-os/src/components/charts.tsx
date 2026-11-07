@@ -6,6 +6,6 @@ export function BarList({ title, data, fmt = (v: number) => v.toLocaleString('ko
 export function MonthBars({ title, months, values, fmt = (v: number) => v.toLocaleString('ko-KR'), note }: { title: string; months: string[]; values: number[]; fmt?: (v: number) => string; note?: string }) {
   const max = Math.max(1, ...values);
   return <div className="card"><h3 className="mb-2 text-sm font-bold">{title}</h3><div className="flex h-32 items-end gap-1" role="img" aria-label={`${title}: ${months.map((m, i) => `${m} ${fmt(values[i])}`).join(', ')}`}>
-    {values.map((v, i) => <div key={months[i]} className="flex h-full flex-1 flex-col items-center justify-end gap-0.5"><span className="h-4 text-[10px] tabular-nums text-gray-600">{v > 0 ? fmt(v) : ''}</span><div className="w-full rounded-t bg-brand" style={{ height: v > 0 ? Math.max(3, Math.round((v / max) * 100)) : 0 }} /></div>)}</div>
-    <div className="mt-1 flex gap-1">{months.map((m) => <span key={m} className="flex-1 text-center text-[10px] text-gray-500">{m.slice(2)}</span>)}</div>{note && <p className="mt-1 text-xs text-gray-400">{note}</p>}</div>;
+    {values.map((v, i) => <div key={months[i]} className="flex h-full flex-1 flex-col items-center justify-end gap-0.5"><span className="h-4 text-[0.7rem] tabular-nums text-gray-600">{v > 0 ? fmt(v) : ''}</span><div className="w-full rounded-t bg-brand" style={{ height: v > 0 ? Math.max(3, Math.round((v / max) * 100)) : 0 }} /></div>)}</div>
+    <div className="mt-1 flex gap-1">{months.map((m) => <span key={m} className="flex-1 text-center text-[0.7rem] text-gray-500">{m.slice(2)}</span>)}</div>{note && <p className="mt-1 text-xs text-gray-400">{note}</p>}</div>;
 }

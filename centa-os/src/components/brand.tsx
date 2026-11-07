@@ -7,7 +7,7 @@ export function Brand() {
   return (
     <div className="mb-4 flex items-center gap-2 px-1">
       <BrandMark size={56} />
-      <div className="leading-tight"><div className="text-base font-extrabold text-brand">센타부동산</div><div className="text-[11px] text-gray-500">땅폴레옹 · REALTY OS</div></div>
+      <div className="leading-tight"><div className="text-base font-extrabold text-brand-ink">센타부동산</div><div className="text-[0.75rem] text-gray-500">땅폴레옹 · REALTY OS</div></div>
     </div>
   );
 }

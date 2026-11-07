@@ -88,16 +88,16 @@ export function ChatApp({ meId, initialRooms, activeId, initialMessages, hasMore
         <ul className="min-h-0 flex-1 overflow-y-auto" aria-label="대화방 목록">
           {rooms.map((r) => (
             <li key={r.id}><Link href={`/chat/${r.id}`} className={`flex items-center gap-3 border-b px-3 py-3 hover:bg-gray-50 ${r.id === activeId ? 'bg-brand-light' : ''}`}>
-              <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-white">{r.kind === 'ALL' ? <Megaphone size={20} /> : r.kind === 'GROUP' ? <Users size={20} /> : <span className="text-lg font-bold">{r.title.slice(0, 1)}</span>}</span>
-              <span className="min-w-0 flex-1"><span className="flex items-center gap-1"><b className="truncate">{r.title}</b>{r.kind !== 'DM' && <span className="text-xs text-gray-400">{r.memberCount}</span>}<span className="ml-auto shrink-0 text-[11px] text-gray-400">{r.last ? listTime(r.last.at) : ''}</span></span>
-                <span className="flex items-center gap-1"><span className="truncate text-xs text-gray-500">{r.last ? (r.last.deleted ? '삭제된 메시지입니다' : r.last.body) : '대화를 시작해 보세요'}</span>{r.unread > 0 && <span aria-label={`안 읽은 메시지 ${r.unread}개`} className="ml-auto shrink-0 rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">{r.unread > 99 ? '99+' : r.unread}</span>}</span></span></Link></li>))}
+              <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-btn text-white">{r.kind === 'ALL' ? <Megaphone size={20} /> : r.kind === 'GROUP' ? <Users size={20} /> : <span className="text-lg font-bold">{r.title.slice(0, 1)}</span>}</span>
+              <span className="min-w-0 flex-1"><span className="flex items-center gap-1"><b className="truncate">{r.title}</b>{r.kind !== 'DM' && <span className="text-xs text-gray-400">{r.memberCount}</span>}<span className="ml-auto shrink-0 text-[0.75rem] text-gray-400">{r.last ? listTime(r.last.at) : ''}</span></span>
+                <span className="flex items-center gap-1"><span className="truncate text-xs text-gray-500">{r.last ? (r.last.deleted ? '삭제된 메시지입니다' : r.last.body) : '대화를 시작해 보세요'}</span>{r.unread > 0 && <span aria-label={`안 읽은 메시지 ${r.unread}개`} className="ml-auto shrink-0 rounded-full bg-red-500 px-1.5 text-[0.75rem] font-bold text-white">{r.unread > 99 ? '99+' : r.unread}</span>}</span></span></Link></li>))}
         </ul>
       </aside>
 
       {/* 대화 화면 */}
       <section className={`min-h-0 flex-col bg-[#f3e6ea]/50 ${activeId ? 'flex' : 'hidden md:flex'}`}>
         {!active ? <div className="m-auto text-sm text-gray-500">왼쪽에서 대화방을 선택하세요</div> : <>
-          <header className="flex items-center gap-2 border-b bg-white p-3"><Link href="/chat" className="md:hidden text-brand" aria-label="목록으로">←</Link><b className="truncate">{active.title}</b>{active.kind !== 'DM' && <span className="text-xs text-gray-400">참여 {active.memberCount}명</span>}
+          <header className="flex items-center gap-2 border-b bg-white p-3"><Link href="/chat" className="md:hidden text-brand-ink" aria-label="목록으로">←</Link><b className="truncate">{active.title}</b>{active.kind !== 'DM' && <span className="text-xs text-gray-400">참여 {active.memberCount}명</span>}
             {active.kind === 'GROUP' && <form action={leaveGroup.bind(null, active.id)} className="ml-auto"><button className="text-xs text-gray-500 underline" onClick={(e) => { if (!confirm('이 그룹 대화방을 나갈까요?')) e.preventDefault(); }}>나가기</button></form>}</header>
           <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3" role="log" aria-live="polite" aria-label="대화 내용">
             {hasMore && <div className="text-center"><button className="btn-ghost !py-1 text-xs" onClick={older}>이전 메시지 더 보기</button></div>}
@@ -111,9 +111,9 @@ export function ChatApp({ meId, initialRooms, activeId, initialMessages, hasMore
                   {newDay && <div className="my-3 text-center"><span className="rounded-full bg-black/10 px-3 py-1 text-xs text-gray-600">{dayLabel(m.createdAt)}</span></div>}
                   {first && !mine && <div className="mb-0.5 mt-2 text-xs text-gray-600">{m.senderName}</div>}
                   <div className={`group flex items-end gap-1 ${mine ? 'flex-row-reverse' : ''}`}>
-                    <div className={`max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm ${m.deleted ? 'bg-gray-100 italic text-gray-400' : mine ? 'rounded-tr-sm bg-brand text-white' : 'rounded-tl-sm border bg-white'}`}>{m.deleted ? '삭제된 메시지입니다' : <Body text={m.body} />}</div>
-                    {lastOfMin && <span className="shrink-0 text-[10px] text-gray-400">{tf.format(new Date(m.createdAt))}</span>}
-                    {mine && !m.deleted && <button className="hidden text-[10px] text-gray-400 underline group-hover:block focus:block" onClick={() => remove(m.id)} aria-label="내 메시지 삭제">삭제</button>}
+                    <div className={`max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm ${m.deleted ? 'bg-gray-100 italic text-gray-400' : mine ? 'rounded-tr-sm bg-brand-btn text-white' : 'rounded-tl-sm border bg-white'}`}>{m.deleted ? '삭제된 메시지입니다' : <Body text={m.body} />}</div>
+                    {lastOfMin && <span className="shrink-0 text-[0.7rem] text-gray-400">{tf.format(new Date(m.createdAt))}</span>}
+                    {mine && !m.deleted && <button className="hidden text-[0.7rem] text-gray-400 underline group-hover:block focus:block" onClick={() => remove(m.id)} aria-label="내 메시지 삭제">삭제</button>}
                   </div></div>);
             })}
             {msgs.length === 0 && <p className="py-10 text-center text-sm text-gray-500">아직 메시지가 없습니다. 첫 메시지를 보내 보세요.</p>}

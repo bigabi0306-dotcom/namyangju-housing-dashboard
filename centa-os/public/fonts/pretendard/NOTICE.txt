@@ -1,0 +1,4 @@
+Pretendard (Variable, dynamic subset) — https://github.com/orioncactus/pretendard
+Copyright (c) 2021, Kil Hyung-jin (https://github.com/orioncactus/pretendard), with Reserved Font Name Pretendard.
+Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
+이 글꼴은 센타부동산 업무시스템 화면 표시용으로 함께 배포됩니다. 글꼴 파일 자체를 단독으로 판매하는 것은 허용되지 않습니다.

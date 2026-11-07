@@ -61,9 +61,9 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ u
         return (
           <section key={u.id} className="card space-y-3 break-inside-avoid">
             <div className="flex flex-wrap items-center gap-3">
-              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">{u.name.slice(0, 1)}</span>
+              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-btn text-lg font-bold text-white">{u.name.slice(0, 1)}</span>
               <div><div className="text-lg font-bold">{u.name}</div><div className="text-xs text-gray-500">{ROLES[u.role.key as RoleKey]}</div></div>
-              <div className="ml-auto flex flex-wrap gap-2">{chips.filter(([, , , ]) => true).map(([l, n, warn]) => (full || l === '일정') && <div key={l} className={`rounded-lg px-3 py-1 text-center ${warn ? 'bg-red-50 text-red-700' : 'bg-gray-50'}`}><div className="text-lg font-bold leading-tight">{n}</div><div className="text-[11px]">{l}</div></div>)}</div>
+              <div className="ml-auto flex flex-wrap gap-2">{chips.filter(([, , , ]) => true).map(([l, n, warn]) => (full || l === '일정') && <div key={l} className={`rounded-lg px-3 py-1 text-center ${warn ? 'bg-red-50 text-red-700' : 'bg-gray-50'}`}><div className="text-lg font-bold leading-tight">{n}</div><div className="text-[0.75rem]">{l}</div></div>)}</div>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               <div><h2 className="mb-1 text-sm font-bold">일정</h2>
@@ -72,7 +72,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ u
                     <ul className="space-y-1">{list.map((e) => (
                       <li key={`${e.id}-${e.start.getTime()}`} className={`flex items-start gap-2 rounded-lg border p-2 text-sm ${e.done ? 'opacity-50' : ''} ${e.conflict ? 'border-red-400 bg-red-50' : ''}`}>
                         <span className="w-12 shrink-0 font-semibold tabular-nums">{hm(e.start)}</span>
-                        <div className="min-w-0"><div className={e.done ? 'line-through' : ''}>{e.conflict && <AlertTriangle size={13} className="mr-1 inline text-red-600" aria-label="시간 겹침" />}<span className="badge mr-1">{e.type}</span><Link href={`/calendar/${e.id}`} className="font-semibold hover:text-brand">{e.title}</Link></div>
+                        <div className="min-w-0"><div className={e.done ? 'line-through' : ''}>{e.conflict && <AlertTriangle size={13} className="mr-1 inline text-red-600" aria-label="시간 겹침" />}<span className="badge mr-1">{e.type}</span><Link href={`/calendar/${e.id}`} className="font-semibold hover:text-brand-ink">{e.title}</Link></div>
                           <div className="truncate text-xs text-gray-500">{[e.base.client?.name, e.base.property?.title].filter(Boolean).join(' · ')}</div></div></li>))}</ul></div>)}</div>}
               </div>
               {full ? (
@@ -80,7 +80,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ u
                   <div><h2 className="mb-1 text-sm font-bold">후속업무 (미완료)</h2>
                     <ul className="space-y-1 text-sm">{tasks.map((t) => { const late = t.dueDate && t.dueDate < dayStart; return <li key={t.id} className="flex flex-wrap items-center gap-1">☐ <span className="font-semibold">{t.title}</span>{t.needsCheck && <span className="badge !bg-amber-100">확인 필요</span>}<span className={`text-xs ${late ? 'font-bold text-red-600' : 'text-gray-500'}`}>{t.dueDate ? `${fmtDate(t.dueDate)}${late ? ' (경과)' : ''}` : '기한 없음'}{t.client ? ` · ${t.client.name}` : ''}</span></li>; })}{tasks.length === 0 && <li className="text-gray-500">미완료 후속업무가 없습니다.</li>}</ul></div>
                   <div><h2 className="mb-1 text-sm font-bold">연락 예정 고객</h2>
-                    <ul className="space-y-1 text-sm">{contacts.map((c) => { const late = c.nextContactAt! < dayStart; return <li key={c.id}>📞 <Link href={`/clients/${c.id}`} className="font-semibold hover:text-brand">{c.name}</Link> <span className={`text-xs ${late ? 'font-bold text-red-600' : 'text-gray-500'}`}>{fmtDate(c.nextContactAt)}{late ? ' (경과)' : ''} · {c.stage}</span></li>; })}{contacts.length === 0 && <li className="text-gray-500">연락 예정 고객이 없습니다.</li>}</ul></div>
+                    <ul className="space-y-1 text-sm">{contacts.map((c) => { const late = c.nextContactAt! < dayStart; return <li key={c.id}>📞 <Link href={`/clients/${c.id}`} className="font-semibold hover:text-brand-ink">{c.name}</Link> <span className={`text-xs ${late ? 'font-bold text-red-600' : 'text-gray-500'}`}>{fmtDate(c.nextContactAt)}{late ? ' (경과)' : ''} · {c.stage}</span></li>; })}{contacts.length === 0 && <li className="text-gray-500">연락 예정 고객이 없습니다.</li>}</ul></div>
                 </div>
               ) : <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">다른 담당자의 후속업무·연락 고객·업무일지는 대표만 볼 수 있습니다.</p>}
             </div>

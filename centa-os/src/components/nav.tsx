@@ -20,6 +20,6 @@ export const MENU = [
 export function NavList({ role }: { role: string }) {
   return <nav className="space-y-1">{MENU.filter((m) => !m.perm || can(role, m.perm)).map((m) => (
     <Link key={m.href} href={m.href} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-brand-light">
-      <m.icon size={16} className="text-brand" /><span>{m.label}</span>{m.href === '/chat' && <ChatBadge />}{!m.ready && <span className="ml-auto rounded bg-gray-100 px-1.5 text-[10px] text-gray-500">준비중</span>}
+      <m.icon size={16} className="text-brand-ink" /><span>{m.label}</span>{m.href === '/chat' && <ChatBadge />}{!m.ready && <span className="ml-auto rounded bg-gray-100 px-1.5 text-[0.7rem] text-gray-500">준비중</span>}
     </Link>))}</nav>;
 }
