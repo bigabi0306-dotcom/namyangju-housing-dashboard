@@ -39,6 +39,8 @@ model User {
   events       CalendarEvent[]
   notifications Notification[]
   auditLogs    AuditLog[]
+  chatMembers  ChatMember[]
+  chatMessages ChatMessage[]
 }
 
 // ── 매물 ─────────────────────────────────────────────
@@ -509,4 +511,38 @@ model SavedSearch {
   query     String   // URL 쿼리스트링(검증된 필터 키만 저장)
   createdAt DateTime @default(now())
   @@index([userId])
+}
+
+// ── 사내 채팅 ──
+model ChatRoom {
+  id        Int      @id @default(autoincrement())
+  kind      String   // ALL(전체) | DM(1:1) | GROUP
+  name      String?
+  roomKey   String?  @unique // ALL 은 'ALL', DM 은 '작은id_큰id' (중복 방지)
+  createdById Int?
+  createdAt DateTime @default(now())
+  members   ChatMember[]
+  messages  ChatMessage[]
+}
+model ChatMember {
+  id         Int      @id @default(autoincrement())
+  roomId     Int
+  room       ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  lastReadId Int      @default(0) // 여기까지 읽음
+  joinedAt   DateTime @default(now())
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId  Int
+  sender    User     @relation(fields: [senderId], references: [id])
+  body      String   // 삭제 시 빈 문자열로 지워짐
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+  @@index([roomId, id])
 }

@@ -208,3 +208,10 @@ test('자동 동기화 시작 판단: 수동·간격·진행 중', () => {
   assert.equal(shouldRunSync(30, ago(31, '진행중'), now), true, '30분 넘게 진행중이면 멈춘 것으로 보고 재시작'); assert.equal(shouldRunSync(30, ago(10, '진행중'), now), false);
   assert.equal(shouldRunSync(60, ago(120, '실패'), now), true, '실패 후에도 다음 주기에 재시도');
 });
+import { dmKey, linkify } from '../src/lib/chat';
+test('채팅: 1:1 방 키는 순서와 무관, 링크는 http(s)만', () => {
+  assert.equal(dmKey(3, 7), '3_7'); assert.equal(dmKey(7, 3), '3_7'); assert.notEqual(dmKey(1, 12), dmKey(11, 2));
+  assert.deepEqual(linkify('매물 https://a.com/x?y=1 참고'), [{ text: '매물 ' }, { text: 'https://a.com/x?y=1', href: 'https://a.com/x?y=1' }, { text: ' 참고' }]);
+  assert.ok(linkify('javascript:alert(1) data:text/html,<script>').every((p) => !p.href), 'javascript:/data: 는 링크 금지');
+  assert.deepEqual(linkify('그냥 글자'), [{ text: '그냥 글자' }]); assert.deepEqual(linkify(''), []);
+});
