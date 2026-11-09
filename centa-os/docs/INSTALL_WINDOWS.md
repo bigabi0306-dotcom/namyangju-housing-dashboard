@@ -80,10 +80,17 @@ node scripts/dbtool.mjs restore backups\centa_날짜_시간.sql.gz
 - (검증됨: 리눅스에서 백업→새 DB 복구→주요 데이터·사진 일치, 취소·잘못된 비밀번호·없는 파일 동작 확인. 윈도우 경로 탐색은 미검증)
 
 ## 8. 업데이트할 때
-1. 프로그램(검은 창)을 **끕니다.**
-2. `windows\update.bat` 을 더블클릭합니다. 자동으로 ① DB 백업 → ② 최신 파일 내려받기 → ③ 복사(설정·사진·백업은 유지) → ④ 부품·DB 표 업데이트 → ⑤ 빌드를 순서대로 진행합니다. 백업이 실패하면 아무것도 바꾸지 않고 멈춥니다.
-3. 끝나면 `windows\start.bat` 으로 다시 시작합니다.
-- ⚠ 이 도구는 윈도우에서 직접 시험해 보지 못했습니다. 문제가 생기면 화면 메시지를 알려주세요. (수동 방법: 새 ZIP을 받아 `.env`, `uploads`, `backups` 폴더는 그대로 두고 나머지를 덮어쓴 뒤 `npm.cmd install`, `npx.cmd prisma db push`, `npm.cmd run build`)
+1. 프로그램(검은 창)을 **끕니다.** 먼저 `windows\backup.bat` 으로 백업합니다.
+2. 새 ZIP을 받아 압축을 풀고, **`.env`, `uploads`, `backups`, `node_modules`, `.next` 는 그대로 둔 채** 나머지 파일만 `centa-os` 폴더에 덮어씁니다. (PowerShell에서 `robocopy 새폴더 기존폴더 /E /XD node_modules .next uploads backups /XF .env` 로 한 번에 할 수 있습니다.)
+3. `centa-os` 폴더의 PowerShell에서 차례로 실행합니다.
+```powershell
+npm.cmd install
+npx.cmd prisma db push
+npm.cmd run build
+```
+   (`npm install`은 새 부품이 없으면 금방 끝납니다.)
+4. 끝나면 `windows\start.bat` 으로 다시 시작합니다.
+- ⚠ 자동 업데이트 도구(`update.bat`)는 만들지 않기로 했습니다. 위 수동 방법은 윈도우에서 한 차례 실제로 적용해 보았습니다(두 번째 업데이트는 진행 중). 문제가 생기면 화면 메시지를 알려주세요.
 
 ## 9. 문제 해결
 | 증상 | 조치 |
