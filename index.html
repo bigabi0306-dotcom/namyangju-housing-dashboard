@@ -102,6 +102,28 @@ main{max-width:1440px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-dir
 .lst .ph .nm{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .lst .go{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--main-dark);text-decoration:none}
 .lst .go:hover{text-decoration:underline}
+#lstDlg{border:0;border-radius:16px;padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 40px);box-shadow:0 20px 50px rgba(20,37,74,.35);color:var(--ink)}
+#lstDlg::backdrop{background:rgba(20,37,74,.55)}
+#lstDlg .ld-ph{height:250px;background:linear-gradient(135deg,var(--navy),var(--navy-2)) center/cover;position:relative}
+#lstDlg .ld-x{position:absolute;top:10px;right:10px;width:34px;height:34px;border:0;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:20px;line-height:1;cursor:pointer}
+#lstDlg .ld-bd{padding:16px 18px 18px}
+#lstDlg .ld-tags{display:flex;gap:4px;flex-wrap:wrap;align-items:center;font-size:12px}
+#lstDlg .ld-tags span{background:var(--main-soft);color:var(--main-dark);font-weight:700;padding:2px 9px;border-radius:12px}
+#lstDlg .ld-tags .t0{background:var(--main);color:#fff}
+#lstDlg .ld-tags small{margin-left:auto;color:var(--ink-2)}
+#lstDlg h3{margin:8px 0 2px;font-size:18px;line-height:1.35}
+#lstDlg .ld-price{font-size:24px;font-weight:900;color:var(--navy)}
+#lstDlg .ld-info{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;margin:12px 0;padding:10px 12px;background:#f7f8fb;border-radius:10px}
+#lstDlg .ld-info dt{color:var(--ink-2)}#lstDlg .ld-info dd{margin:0;font-weight:600}
+#lstDlg .ld-tr{font-size:12px;width:100%;border-collapse:collapse;margin-bottom:12px}
+#lstDlg .ld-tr th,#lstDlg .ld-tr td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right}
+#lstDlg .ld-tr th:first-child,#lstDlg .ld-tr td:first-child{text-align:left}
+#lstDlg .ld-sub{font-size:13px;font-weight:700;margin:0 0 4px}
+#lstDlg .ld-btns{display:flex;gap:8px;flex-wrap:wrap}
+#lstDlg .ld-btns a,#lstDlg .ld-btns button{flex:1 1 140px;text-align:center;font:inherit;font-weight:700;font-size:14px;padding:10px;border-radius:10px;text-decoration:none;cursor:pointer;border:0}
+#lstDlg .b-main{background:var(--main);color:#fff}#lstDlg .b-tel{background:var(--navy);color:#fff}
+#lstDlg .ld-adm{display:block;margin-top:12px;text-align:center;font-size:12px;color:var(--ink-2)}
+#lstDlg .ld-adm a{color:var(--ink-2)}
 .lst .nopos{font-size:11px;color:var(--ink-2);margin-top:4px}
 .lst .ph .badge{display:inline-block;background:var(--main);color:var(--navy);font-weight:900;font-size:12px;padding:2px 10px;border-radius:12px}
 .lst .ph .nm{font-size:16px;margin-top:4px}
@@ -242,6 +264,7 @@ body.print-promo .addr-full{display:none}
 body.print-promo .addr-area{display:inline}
 body.print-promo .pc{border-width:4px}
 @media print{
+#lstDlg{display:none}
   @page{size:A4;margin:10mm}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   body{background:#fff}
@@ -846,12 +869,35 @@ const ALL_LISTINGS = (() => {
 })();
 let LIST = [], lstShown = 8;
 
+// 추천매물 상세창 (손님용 일반 화면). 홈페이지는 로그인 상태면 관리자 화면으로 열리므로 버튼으로만 이동
+function openListing(i) {
+  const l = LIST[i], dlg = document.getElementById('lstDlg');
+  let trs = '';
+  if (l.cx >= 0 && l.area && (l.type === '매매' || l.type === '전세')) {
+    const rows = (l.type === '매매' ? TR : RJ).filter(r => r[0] === l.cx && Math.abs(r[2] - l.area) < 3).slice(-5).reverse();
+    if (rows.length) trs = `<p class="ld-sub">같은 단지·면적 최근 ${l.type} 실거래</p><table class="ld-tr"><tr><th>계약일</th><th>전용</th><th>층</th><th>${l.type === '매매' ? '거래금액' : '보증금'}</th></tr>` +
+      rows.map(r => `<tr><td>${fmtDate(r[1])}</td><td>${r[2]}㎡</td><td>${r[3]}층</td><td><b>${won(r[4])}</b></td></tr>`).join('') + '</table>';
+  }
+  const info = [['면적', l.area ? `전용 ${l.area}㎡ (${pyeong(l.area)}평형)` : ''], ['방/욕실', l.rooms || ''], ['위치', (l.addr || l.region || '').replace('경기 남양주시 ', '')]]
+    .filter(r => r[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+  dlg.innerHTML = `<div class="ld-ph" ${l.img ? `style="background-image:url('${encodeURI(l.img)}')"` : ''}><button class="ld-x" aria-label="닫기">×</button></div>
+    <div class="ld-bd"><div class="ld-tags"><span class="t0">${esc(l.type)}</span>${(l.tags || []).map(t => `<span>${esc(t)}</span>`).join('')}${l.id ? `<small>매물번호 ${esc(l.id)}</small>` : ''}</div>
+    <h3>${esc(l.title)}</h3><div class="ld-price">${esc(l.price)}</div>
+    ${info ? `<dl class="ld-info">${info}</dl>` : ''}${trs}
+    <div class="ld-btns">${l.cx >= 0 ? '<button class="b-main" data-map>지도·입지분석 보기</button>' : ''}<a class="b-tel" href="tel:01088487727">☎ 010-8848-7727 상담</a></div>
+    ${l.url ? `<span class="ld-adm"><a href="${esc(l.url)}" target="_blank" rel="noopener">관리자 모드 (홈페이지에서 열기) ↗</a></span>` : ''}</div>`;
+  dlg.querySelector('.ld-x').onclick = () => dlg.close();
+  const mp = dlg.querySelector('[data-map]'); if (mp) mp.onclick = () => { dlg.close(); select(l.cx, true, i); };
+  dlg.onclick = e => { if (e.target === dlg) dlg.close(); };
+  dlg.showModal(); dlg.scrollTop = 0;
+}
+
 function renderListings() {
   const el = document.getElementById('listings');
   const inReg = ALL_LISTINGS.filter(l => S.region === 'all' || l.region === S.region);
   LIST = inReg.length ? inReg : ALL_LISTINGS;
   const src = D.homepage?.length ? '홈페이지 매물' : '예시 매물';
-  document.getElementById('lstNote').textContent = `${src} ${LIST.length}건${inReg.length ? '' : ' (선택 지역 매물이 없어 전체 표시)'} · 클릭하면 입지분석이 열립니다`;
+  document.getElementById('lstNote').textContent = `${src} ${LIST.length}건${inReg.length ? '' : ' (선택 지역 매물이 없어 전체 표시)'} · 카드를 누르면 입지분석, '자세히 보기'는 상세 정보`;
   el.innerHTML = LIST.slice(0, lstShown).map((l, i) => {
     let cmp = '';
     if (l.cx >= 0 && l.area && (l.type === '매매' || l.type === '전세')) {
@@ -864,16 +910,16 @@ function renderListings() {
       <div class="nm">${esc(l.title)}</div><div class="meta">${esc(l.meta)}</div></div>
       <div class="bd"><div class="price">${esc(l.price)}</div><ul>${l.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>${cmp}
       ${l.cx < 0 ? '<div class="nopos">위치 정보가 없어 입지분석은 홈페이지에서 확인하세요</div>' : ''}
-      ${l.url ? `<a class="go" href="${l.url}" target="_blank" rel="noopener">홈페이지에서 자세히 보기 ↗</a>` : ''}</div></div>`;
+      <a class="go" href="#" data-detail>자세히 보기 ›</a></div></div>`;
   }).join('');
   const more = document.getElementById('lstMore');
   more.style.display = LIST.length > lstShown ? 'inline-block' : 'none';
   more.textContent = `매물 더보기 (${LIST.length - lstShown}건 더)`;
   more.onclick = () => { lstShown += 8; renderListings(); };
   el.querySelectorAll('.lst').forEach(card => card.onclick = e => {
-    if (e.target.closest('a')) return;
     const l = LIST[+card.dataset.i];
-    if (l.cx < 0) { if (l.url) window.open(l.url, '_blank', 'noopener'); return; }
+    if (e.target.closest('[data-detail]') || l.cx < 0) { e.preventDefault(); return openListing(+card.dataset.i); }
+    if (e.target.closest('a')) return;
     select(l.cx, true, +card.dataset.i);
   });
 }
@@ -1191,5 +1237,6 @@ if (KAKAO_KEY) {
 } else boot();
 })();
 </script>
+<dialog id="lstDlg"></dialog>
 </body>
 </html>
