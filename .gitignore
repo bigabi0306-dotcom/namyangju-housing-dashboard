@@ -7,3 +7,7 @@ data/raw/
 
 __pycache__/
 *.pyc
+
+# QGIS용 CSV (fetch_data.py 가 만듦, 용량이 커서 제외)
+qgis/
+.claude/

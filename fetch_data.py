@@ -409,7 +409,100 @@ def fetch_bunyang():
     print(f"분양공고 {len(rows)}건 (진접2 {sum(r['dist']=='진접2' for r in rows)} / 왕숙 {sum(r['dist'].startswith('왕숙') for r in rows)})")
 
 
+POP_URL = "https://apis.data.go.kr/1741000/admmPpltnHhStus/selectAdmmPpltnHhStus"
+ADMM_CD = CFG.get("ADMM_CD", "4136000000")   # 행정기관코드: 경기도 남양주시
+
+
+def fetch_population():
+    """행정안전부 주민등록 인구·세대 (행정동별, 월말 기준) → data/population.js
+    API 한 번에 최대 3개월까지만 조회되므로 3개월씩 나눠 받고, 지난 구간은 캐시."""
+    cache_dir = os.path.join(DATA, "raw")
+    os.makedirs(cache_dir, exist_ok=True)
+    last = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%Y%m")  # 지난달까지 집계됨
+    yms = [ym for ym in months(CFG.get("START_YM", "202401")) if ym <= last]
+    recent = (datetime.date.today() - datetime.timedelta(days=95)).strftime("%Y%m")
+    pop = {}   # 행정동 -> {ym: [총인구, 세대수]}
+    for i in range(0, len(yms), 3):
+        win = yms[i:i + 3]
+        f = os.path.join(cache_dir, f"pop_{win[0]}_{win[-1]}.json")
+        if os.path.exists(f) and win[-1] < recent:
+            items = json.load(open(f, encoding="utf-8"))
+        else:
+            items, page = [], 1
+            while True:
+                q = urllib.parse.urlencode({"admmCd": ADMM_CD, "srchFrYm": win[0], "srchToYm": win[-1], "lv": 3,
+                                            "regSeCd": 1, "type": "JSON", "numOfRows": 100, "pageNo": page})
+                d = json.loads(http_get(f"{POP_URL}?serviceKey={KEY}&{q}"))
+                body = d.get("Response") or d.get("response") or {}
+                if not body:
+                    raise RuntimeError(d.get("OpenAPI_ServiceResponse", d))
+                its = body.get("items", {})
+                its = its.get("item", []) if isinstance(its, dict) else its
+                items.extend([its] if isinstance(its, dict) else its)
+                total = int(body.get("head", {}).get("totalCount") or body.get("totalCount") or len(items))
+                if page * 100 >= total or not its:
+                    break
+                page += 1
+            json.dump(items, open(f, "w", encoding="utf-8"), ensure_ascii=False)
+            print(f"  인구 {win[0]}~{win[-1]}: {len(items)}건", flush=True)
+        for it in items:
+            dong = (it.get("dongNm") or "").strip()
+            if dong:
+                pop.setdefault(dong, {})[it["statsYm"]] = [num(it.get("totNmprCnt")), num(it.get("hhCnt"))]
+    with open(os.path.join(DATA, "population.js"), "w", encoding="utf-8") as f:
+        f.write("window.POPULATION=")
+        json.dump({"updated": datetime.date.today().isoformat(), "rows": pop}, f, ensure_ascii=False, separators=(",", ":"))
+        f.write(";")
+    print(f"인구: 행정동 {len(pop)}곳 · {len(yms)}개월")
+    return pop
+
+
+def export_qgis(cx_out, trades, rents, pop):
+    """QGIS 시간 컨트롤러용 CSV (레이어 > 구분자로 분리된 텍스트, X=lon Y=lat, EPSG:4326, 시간 필드=계약일)"""
+    out = os.path.join(BASE, "qgis")
+    os.makedirs(out, exist_ok=True)
+    ko = {"apt": "아파트", "villa": "빌라", "house": "주택"}
+    iso = lambda d: f"{d // 10000}-{d // 100 % 100:02d}-{d % 100:02d}"
+
+    def write(name, header, rows):
+        import csv
+        with open(os.path.join(out, name), "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.writer(f); w.writerow(header); w.writerows(rows)
+
+    def base(t):
+        c = cx_out[t[0]]
+        return [ko.get(c[10], ""), c[0], c[1], c[2], iso(t[1]), iso(t[1])[:7], t[2], t[3]]
+
+    write("실거래_매매.csv", ["유형", "단지", "읍면동", "법정동", "계약일", "계약월", "면적", "층", "거래금액_만원", "평당가_만원", "lon", "lat"],
+          [base(t) + [t[4], round(t[4] / (t[2] / 3.3058)) if t[2] else "", cx_out[t[0]][6], cx_out[t[0]][5]]
+           for t in trades if cx_out[t[0]][5] is not None])
+    write("실거래_전월세.csv", ["유형", "단지", "읍면동", "법정동", "계약일", "계약월", "면적", "층", "보증금_만원", "월세_만원", "구분", "lon", "lat"],
+          [base(t) + [t[4], t[5], "월세" if t[5] else "전세", cx_out[t[0]][6], cx_out[t[0]][5]]
+           for t in rents if cx_out[t[0]][5] is not None])
+    if pop:
+        # 행정동 위치 = 그 지역 단지 좌표의 평균 (경계 폴리곤이 없어 중심점으로 표시)
+        cent = {}
+        for c in cx_out:
+            if c[5] is not None:
+                cent.setdefault(c[1], []).append((c[5], c[6]))
+        # 다산1동 → 다산동, 화도읍남부출장소 → 화도읍
+        to_region = lambda d: re.sub(r"^(.+?[읍면]).+출장소$", r"\1", re.sub(r"\d+동$", "동", d))
+        rows = []
+        for dong, by in pop.items():
+            # 양정동은 법정 지역(읍면동) 목록에 없어 좌표를 직접 지정
+            pts = {"양정동": [(37.598, 127.180)]}.get(dong) or cent.get(to_region(dong))
+            if not pts:
+                continue
+            la, lo = sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
+            for ym, (tot, hh) in sorted(by.items()):
+                rows.append([dong, f"{ym[:4]}-{ym[4:]}-01", tot, hh, round(lo, 6), round(la, 6)])
+        write("인구_행정동.csv", ["행정동", "기준월", "총인구", "세대수", "lon", "lat"], rows)
+    print(f"QGIS용 CSV 저장: {out}")
+
+
 def main():
+    if "--population-only" in sys.argv:
+        return fetch_population()
     if "--bunyang-only" in sys.argv:
         try:
             return fetch_bunyang()
@@ -502,6 +595,12 @@ def main():
         fetch_bunyang()
     except Exception as e:
         print("청약홈 분양정보 수집 실패 (공공데이터포털에서 '한국부동산원_청약홈 분양정보 조회 서비스' 활용신청 필요):", e)
+    try:
+        pop = fetch_population()
+    except Exception as e:
+        print("인구 수집 실패 (공공데이터포털에서 '행정안전부_행정동별(통반단위) 주민등록 인구 및 세대현황' 활용신청 필요):", e)
+        pop = {}
+    export_qgis(cx_out, trades, rents, pop)
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@
 <script src="data/data.js"></script>
 <script src="data/bunyang.js"></script>
 <script src="data/bunyang_plan.js"></script>
+<script src="data/population.js"></script>
 <script src="data/devplans.js"></script>
 <script src="data/listings.js"></script>
 <style>
@@ -120,6 +121,22 @@ main{max-width:1440px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-dir
 #sTable mark{background:var(--main-soft);color:var(--main-dark);font-weight:700;padding:0}
 #sTable .sub{font-size:12px;color:var(--ink-2)}
 @media (max-width:700px){#sTable .hide-m{display:none}}
+.tmctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.tmctl input[type=range]{flex:1;min-width:200px;accent-color:var(--main)}
+.tmctl #tmMonth{min-width:84px;font-size:18px;color:var(--main-dark)}
+.tmplay{font:inherit;font-weight:700;border:0;border-radius:8px;background:var(--main);color:#fff;padding:7px 14px;cursor:pointer}
+.tmgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+#tmap{height:420px;border-radius:10px;border:1px solid var(--line)}
+#tmLegend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:6px;align-items:center}
+#tmLegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:3px;vertical-align:-1px}
+.tmsum{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tmsum div{background:var(--main-soft);border-radius:10px;padding:8px 10px}
+.tmsum .k{font-size:12px;color:var(--ink-2)}
+.tmsum .v{font-size:19px;font-weight:900;color:var(--main-dark)}
+.tmsum .v small{font-size:12px;font-weight:600;margin-left:3px}
+.poplbl{background:rgba(255,255,255,.85);border:1px solid #9aa3b5;border-radius:6px;padding:1px 5px;font-size:11px;color:#333;box-shadow:none}
+.poplbl.sel{border-color:var(--main-dark);color:var(--main-dark);font-weight:700}
+@media (max-width:900px){.tmgrid{grid-template-columns:1fr}#tmap{height:340px}}
 #bUpcoming{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 #bUpcoming .up{border:1px solid var(--main);background:var(--main-soft);border-radius:10px;padding:7px 11px;font-size:13px}
 #bUpcoming .up b{color:var(--main-dark)}
@@ -202,6 +219,10 @@ body.printing .dgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 body.printing .grid2>*,body.printing .dgrid>*{min-width:0}
 body.printing .dgrid div[style*="overflow"]{max-height:none!important;overflow:visible!important}
 body.printing #dTable tr:nth-child(n+14){display:none}
+body.printing .tmctl{display:none}
+body.printing .tmgrid{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+body.printing #tmap{height:330px}
+body.print-promo #tmapCard{display:none}
 body.printing #bunyangCard .swrap{max-height:none;overflow:visible;border:0}
 body.printing .loc{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 body.printing .kpi,body.printing .lc,body.printing .toplist li,body.printing .hero,body.printing .pc,body.printing .chartbox,body.printing .dgrid{break-inside:avoid}
@@ -288,6 +309,26 @@ body.print-promo .pc{border-width:4px}
     <div class="card"><h2><span class="bar"></span>면적대별 거래 비중 · 평균가<small>선택 기간 매매</small></h2><div class="chartbox"><canvas id="areaChart"></canvas></div></div>
   </section>
 
+  <section class="card" id="tmapCard">
+    <h2><span class="bar"></span>시간 흐름 지도 · 인구<small>월별 실거래 (원 크기 = 거래량, 색 = 평당가) · 주민등록 인구 (행정안전부)</small></h2>
+    <div class="tmctl">
+      <button class="tmplay" id="tmPlay">▶ 재생</button>
+      <input type="range" id="tmSlider" min="0" max="0" value="0" aria-label="월 선택">
+      <b id="tmMonth"></b>
+      <div class="seg" id="tmKind"><button data-k="sale">매매</button><button data-k="jeonse">전세</button></div>
+      <label class="note"><input type="checkbox" id="tmPopOn" checked> 인구 표시</label>
+    </div>
+    <div class="tmgrid">
+      <div><div id="tmap"></div><div id="tmLegend"></div></div>
+      <div>
+        <div class="tmsum" id="tmSum"></div>
+        <h4 style="margin:10px 0 4px" id="popTitle">인구 · 세대수 추이</h4>
+        <div class="chartbox" style="height:210px"><canvas id="popChart"></canvas></div>
+        <p class="note" id="popNote" style="margin:6px 0 0"></p>
+      </div>
+    </div>
+  </section>
+
   <section class="card" id="bunyangCard">
     <h2><span class="bar"></span>진접2지구 · 왕숙신도시 분양가 · 분양일정<small id="bunyangNote">청약홈(한국부동산원) 모집공고 기준</small></h2>
     <div class="srow">
@@ -367,7 +408,7 @@ body.print-promo .pc{border-width:4px}
       <a href="https://blog.naver.com/landpoleon" target="_blank" rel="noopener" title="네이버 블로그"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="4" fill="#03c75a"/><path d="M7.5 7.5h3l3 4.6V7.5h3v9h-3l-3-4.6v4.6h-3z" fill="#fff"/></svg><span>블로그</span></a>
       <a href="https://www.instagram.com/ddang_poleon" target="_blank" rel="noopener" title="인스타그램"><svg viewBox="0 0 24 24"><defs><linearGradient id="ig2" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#fdb63a"/><stop offset=".5" stop-color="#e1306c"/><stop offset="1" stop-color="#833ab4"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig2)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.3" fill="#fff"/></svg><span>인스타</span></a>
     </nav></div></div>
-    <div>자료: 국토교통부 아파트·연립다세대·단독다가구 매매·전월세 실거래가 (공공데이터포털) · 분양공고: 청약홈(한국부동산원) · 매물: 땅폴레옹 홈페이지 · 주변시설 © OpenStreetMap contributors · <span id="mapSrc"></span><br>실거래가는 계약일 기준이며 신고기한(30일)으로 최근 자료는 늘어날 수 있습니다.</div>
+    <div>자료: 국토교통부 아파트·연립다세대·단독다가구 매매·전월세 실거래가 (공공데이터포털) · 분양공고: 청약홈(한국부동산원) · 인구: 행정안전부 주민등록 인구통계 · 매물: 땅폴레옹 홈페이지 · 주변시설 © OpenStreetMap contributors · <span id="mapSrc"></span><br>실거래가는 계약일 기준이며 신고기한(30일)으로 최근 자료는 늘어날 수 있습니다.</div>
   </div>
 </footer>
 
@@ -924,6 +965,7 @@ function doPrint(mode) {
   // 인쇄 폭으로 바뀐 레이아웃에 맞춰 지도·차트를 다시 그린 뒤 인쇄
   setTimeout(() => {
     MAP.relayout(); Object.values(charts).forEach(ch => ch.resize());
+    tmStop(); TM.map?.invalidateSize(); TM.map?.closePopup();
     MAP.closePopup();  // 인쇄물에서는 팝업 대신 ★ 위치 표시
     if (S.sel != null) { const c = CX[S.sel]; if (c[5] != null) MAP.focus(c[5], c[6]); }
     setTimeout(() => window.print(), 800);
@@ -932,7 +974,7 @@ function doPrint(mode) {
 window.addEventListener('afterprint', () => {
   document.body.classList.remove('printing', 'print-briefing', 'print-promo');
   setTimeout(() => {
-    MAP.relayout(); Object.values(charts).forEach(ch => ch.resize());
+    MAP.relayout(); Object.values(charts).forEach(ch => ch.resize()); TM.map?.invalidateSize();
     if (S.sel != null) { const c = CX[S.sel]; if (c[5] != null) MAP.focus(c[5], c[6]); }
   }, 100);
 });
@@ -952,6 +994,7 @@ function render() {
   renderRegionChart(); renderIndex(); renderArea(sale);
   renderTop();
   renderListings();
+  renderTimeMap();
 }
 
 regSel.onchange = () => { S.region = regSel.value; S.sel = null; lstShown = 8; MAP.clear('poi'); render(); };
@@ -964,6 +1007,128 @@ document.querySelectorAll('#unit button').forEach(b => b.onclick = () => { S.uni
 document.getElementById('area').onchange = e => { S.area = e.target.value; render(); };
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.top = b.dataset.t; S.sel = null; MAP.clear('poi'); renderTop(); });
 document.querySelectorAll('#topSort button').forEach(b => b.onclick = () => { S.sort = b.dataset.s; S.sel = null; MAP.clear('poi'); renderTop(); });
+
+// ---------- 시간 흐름 지도 · 인구 (QGIS 시간 컨트롤러처럼 월별 재생)
+const TM = {kind: 'sale', idx: null, timer: null, map: null, dots: null, pops: null, fitKey: ''};
+const ymAdd = (ym, k) => { let y = Math.floor(ym / 100), m = ym % 100 + k; while (m > 12) { m -= 12; y++; } while (m < 1) { m += 12; y--; } return y * 100 + m; };
+const ymLabel = ym => `${Math.floor(ym / 100)}.${String(ym % 100).padStart(2, '0')}`;
+const TM_MONTHS = (() => { const a = []; for (let ym = Math.floor(minDate / 100); ym <= Math.floor(maxDate / 100); ym = ymAdd(ym, 1)) a.push(ym); return a; })();
+const TM_COLORS = ['#fde3ea', '#f6b3c5', '#E57E9B', '#c34a70', '#7d1e40'];
+// 인구: 행정동 → 대시보드 지역(법정 읍·면·동) 이름. 다산1동·다산2동 → 다산동
+const POP = window.POPULATION?.rows || null;
+// 다산1동·다산2동 → 다산동, 화도읍남부출장소·화도읍동부출장소 → 화도읍
+const popRegion = d => d.replace(/\d+동$/, '동').replace(/^(.+?[읍면]).+출장소$/, '$1');
+const POP_XY = {'양정동': [37.598, 127.180]};   // 단지 좌표로 중심을 잡을 수 없는 행정동
+const regionXY = (() => { const m = {}; CX.forEach(c => { if (c[5] != null && c[7] !== 'hp') (m[c[1]] ||= []).push([c[5], c[6]]); });
+  const o = {}; for (const [r, pts] of Object.entries(m)) o[r] = [avg(pts.map(p => p[0])), avg(pts.map(p => p[1]))]; return o; })();
+const popAt = (dong, ym) => { const by = POP?.[dong]; if (!by) return null; for (let k = ym, i = 0; i < 6; i++, k = ymAdd(k, -1)) if (by[k]) return by[k]; return null; };
+const popSum = (region, ym) => { if (!POP) return null; let t = 0, h = 0, n = 0;
+  for (const d of Object.keys(POP)) { if (region !== 'all' && popRegion(d) !== region) continue; const v = popAt(d, ym); if (v) { t += v[0]; h += v[1]; n++; } }
+  return n ? [t, h] : null; };
+
+function tmEnsureMap() {
+  if (TM.map) return;
+  TM.map = L.map('tmap', {scrollWheelZoom: false}).setView([37.66, 127.21], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom: 19, subdomains: 'abcd',
+    attribution: '© OpenStreetMap contributors © CARTO'}).addTo(TM.map);
+  TM.pops = L.layerGroup().addTo(TM.map);
+  TM.dots = L.layerGroup().addTo(TM.map);
+}
+// 월별·단지별 값: 매매 = 평당가, 전세 = 평당 보증금 (선택 지역·면적 기준)
+function tmData() {
+  const rows = TM.kind === 'sale' ? TR : RJ, by = {};
+  for (const r of rows) { if (!inRegion(r[0]) || !areaOk(r[2], S.area) || CX[r[0]][5] == null || !r[2]) continue;
+    ((by[Math.floor(r[1] / 100)] ||= {})[r[0]] ||= []).push(r[4] / (r[2] / PY)); }
+  const all = Object.values(by).flatMap(m => Object.values(m).map(v => median(v))).sort((a, b) => a - b);
+  const q = [0.2, 0.4, 0.6, 0.8].map(p => all[Math.floor(p * (all.length - 1))] || 0);   // 전 기간 같은 색 기준
+  return {by, q};
+}
+function renderTimeMap() {
+  tmEnsureMap();
+  const sl = document.getElementById('tmSlider');
+  sl.max = TM_MONTHS.length - 1;
+  // 처음엔 자료가 다 찬 마지막 달 (이번 달은 신고기한 때문에 거래가 덜 잡힘)
+  if (TM.idx == null) TM.idx = Math.max(0, TM_MONTHS.length - (maxDate % 100 < 25 ? 2 : 1));
+  sl.value = TM.idx;
+  document.querySelectorAll('#tmKind button').forEach(b => b.classList.toggle('on', b.dataset.k === TM.kind));
+  TM.data = tmData();
+  // 지역이 바뀌면 그 지역 단지에 맞춰 화면 이동
+  const fitKey = S.region + PT;
+  if (TM.fitKey !== fitKey) {
+    const pts = CX.map((c, i) => [c, i]).filter(([c, i]) => c[5] != null && c[7] !== 'hp' && ptOf(i) === PT && inRegion(i)).map(([c]) => [c[5], c[6]]);
+    if (pts.length) TM.map.fitBounds(pts, {padding: [20, 20], maxZoom: 14});
+    TM.fitKey = fitKey;
+  }
+  const {q} = TM.data;
+  const unit = TM.kind === 'sale' ? '평당가' : '평당 보증금';
+  document.getElementById('tmLegend').innerHTML = `<span>${unit} (${AREA_BASIS}, 만원/3.3㎡)</span>` +
+    TM_COLORS.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '~' + Math.round(q[0]).toLocaleString() : i === 4 ? Math.round(q[3]).toLocaleString() + '~' : Math.round(q[i - 1]).toLocaleString() + '~' + Math.round(q[i]).toLocaleString()}</span>`).join('') +
+    (POP ? '<span><i style="background:#9aa3b5;opacity:.5"></i>회색 원 = 인구</span>' : '');
+  tmDraw();
+  renderPopChart();
+}
+function tmDraw() {
+  const ym = TM_MONTHS[TM.idx], {by, q} = TM.data, m = by[ym] || {};
+  document.getElementById('tmMonth').textContent = ymLabel(ym);
+  TM.dots.clearLayers(); TM.pops.clearLayers();
+  // 인구: 지역 중심에 인구 비례 원 + 이름표 (같은 지역 행정동은 합산해 한 원으로)
+  if (POP && document.getElementById('tmPopOn').checked) {
+    const grp = {};
+    for (const d of Object.keys(POP)) { const v = popAt(d, ym), key = POP_XY[d] ? d : popRegion(d), xy = POP_XY[d] || regionXY[key]; if (!v || !xy) continue;
+      const g = grp[key] ||= {xy, t: 0}; g.t += v[0]; }
+    for (const [key, g] of Object.entries(grp)) {
+      const sel = S.region !== 'all' && key === S.region;
+      L.circle(g.xy, {radius: Math.sqrt(g.t) * 7, color: sel ? '#c34a70' : '#7d8597', weight: sel ? 2 : 1, fillColor: '#9aa3b5', fillOpacity: .18, interactive: false}).addTo(TM.pops);
+      L.marker(g.xy, {opacity: 0, interactive: false}).bindTooltip(`${esc(key)} ${(g.t / 10000).toFixed(1)}만`, {permanent: true, direction: 'center', className: 'poplbl' + (sel ? ' sel' : '')}).addTo(TM.pops); }
+  }
+  const color = v => TM_COLORS[q.findIndex(x => v <= x) < 0 ? 4 : q.findIndex(x => v <= x)];
+  let n = 0; const vals = [];
+  for (const [cx, vs] of Object.entries(m)) {
+    const c = CX[cx], med = median(vs); n += vs.length; vals.push(...vs);
+    L.circleMarker([c[5], c[6]], {radius: 4 + Math.sqrt(vs.length) * 3, color: '#fff', weight: 1, fillColor: color(med), fillOpacity: .9})
+      .bindPopup(`<b>${esc(c[0])}</b><div class="meta">${esc(c[2])}</div>${ymLabel(ym)} ${TYPE_KO[TM.kind]} ${vs.length}건 · ${TM.kind === 'sale' ? '평당가' : '평당 보증금'} ${Math.round(med).toLocaleString()}만`)
+      .addTo(TM.dots);
+  }
+  // 요약: 이번 달 거래 · 중위 평당가 · 인구(전년 동월 대비)
+  const prev = TM.data.by[ymAdd(ym, -12)] || {}, pv = Object.values(prev).flat();
+  const p = popSum(S.region, ym), p0 = popSum(S.region, ymAdd(ym, -12));
+  const regName = S.region === 'all' ? '남양주시' : S.region;
+  const dlt = (a, b, d = 1) => a && b ? `<small class="${a > b ? 'up' : a < b ? 'down' : 'flat'}">${a >= b ? '▲' : '▼'}${Math.abs((a - b) / b * 100).toFixed(d)}%</small>` : '';
+  document.getElementById('tmSum').innerHTML =
+    `<div><div class="k">${ymLabel(ym)} ${TYPE_KO[TM.kind]} 거래</div><div class="v">${n.toLocaleString()}<small>건</small>${dlt(n, pv.length)}</div></div>` +
+    `<div><div class="k">중위 ${TM.kind === 'sale' ? '평당가' : '평당 보증금'}</div><div class="v">${vals.length ? Math.round(median(vals)).toLocaleString() + '<small>만</small>' : '-'}${vals.length && pv.length ? dlt(median(vals), median(pv)) : ''}</div></div>` +
+    `<div><div class="k">${esc(regName)} 인구</div><div class="v">${p ? (p[0] / 10000).toFixed(2) + '<small>만명</small>' + dlt(p[0], p0?.[0], 2) : '-'}</div></div>` +
+    `<div><div class="k">세대수</div><div class="v">${p ? (p[1] / 10000).toFixed(2) + '<small>만세대</small>' + dlt(p[1], p0?.[1], 2) : '-'}</div></div>`;
+  // 인구 차트의 현재 월 표시
+  const ch = charts.popChart; if (ch) { ch.data.datasets.forEach(ds => ds.pointRadius = ch.data.labels.map((_, i) => TM_MONTHS[i] === ym ? 6 : 0)); ch.update('none'); }
+}
+function renderPopChart() {
+  const note = document.getElementById('popNote');
+  const regName = S.region === 'all' ? '남양주시' : S.region;
+  document.getElementById('popTitle').textContent = `${regName} 인구 · 세대수 추이`;
+  if (!POP) { charts.popChart?.destroy(); delete charts.popChart;
+    note.innerHTML = '인구 자료가 아직 없습니다. 공공데이터포털에서 「행정안전부_행정동별(통반단위) 주민등록 인구 및 세대현황」 활용신청 후 <code>데이터_업데이트.bat</code> 을 실행하세요.'; return; }
+  const ps = TM_MONTHS.map(ym => popSum(S.region, ym));
+  note.textContent = `주민등록 인구 (월말 기준, 행정동 합산) · ${window.POPULATION.updated} 수집${S.region !== 'all' && !ps.some(Boolean) ? ' · 이 지역은 행정동 이름이 달라 집계되지 않습니다' : ''}`;
+  mkChart('popChart', {type: 'line', data: {labels: TM_MONTHS.map(ymLabel), datasets: [
+      {label: '인구', data: ps.map(v => v?.[0] ?? null), borderColor: '#E57E9B', backgroundColor: '#E57E9B', yAxisID: 'y', tension: .25, spanGaps: true},
+      {label: '세대수', data: ps.map(v => v?.[1] ?? null), borderColor: '#12303a', backgroundColor: '#12303a', yAxisID: 'y1', tension: .25, spanGaps: true, borderDash: [4, 3]}]},
+    options: {maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: {tooltip: {callbacks: {label: c => `${c.dataset.label} ${c.raw == null ? '-' : c.raw.toLocaleString()}`}}},
+      scales: {y: {position: 'left', ticks: {callback: v => (v / 10000).toFixed(1) + '만'}, grid: {color: '#eef1f6'}},
+        y1: {position: 'right', ticks: {callback: v => (v / 10000).toFixed(1) + '만'}, grid: {display: false}}, x: {grid: {display: false}, ticks: {maxTicksLimit: 8}}}}});
+  tmDraw();
+}
+function tmStop() { clearInterval(TM.timer); TM.timer = null; document.getElementById('tmPlay').textContent = '▶ 재생'; }
+document.getElementById('tmPlay').onclick = () => {
+  if (TM.timer) return tmStop();
+  if (TM.idx >= TM_MONTHS.length - 1) TM.idx = 0;
+  document.getElementById('tmPlay').textContent = '⏸ 멈춤';
+  TM.timer = setInterval(() => { if (TM.idx >= TM_MONTHS.length - 1) return tmStop(); TM.idx++; document.getElementById('tmSlider').value = TM.idx; tmDraw(); }, 900);
+};
+document.getElementById('tmSlider').oninput = e => { tmStop(); TM.idx = +e.target.value; tmDraw(); };
+document.querySelectorAll('#tmKind button').forEach(b => b.onclick = () => { TM.kind = b.dataset.k; renderTimeMap(); });
+document.getElementById('tmPopOn').onchange = () => tmDraw();
 
 // ---------- 진접2 · 왕숙 분양 (청약홈 모집공고, fetch_data.py 가 data/bunyang.js 로 저장)
 const BS = {dist: 'main'};
