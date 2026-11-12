@@ -120,15 +120,6 @@ main{max-width:1440px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-dir
 #sTable mark{background:var(--main-soft);color:var(--main-dark);font-weight:700;padding:0}
 #sTable .sub{font-size:12px;color:var(--ink-2)}
 @media (max-width:700px){#sTable .hide-m{display:none}}
-.ugrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:18px;align-items:start}
-.usum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.usum div{background:var(--main-soft);border-radius:10px;padding:8px 10px}
-.usum .k{font-size:12px;color:var(--ink-2)}
-.usum .v{font-size:20px;font-weight:900;color:var(--main-dark)}
-#unsoldTable tr.hl,#lotoutTable tr.hl{background:#fff7e0}
-.ubar{height:6px;border-radius:3px;background:var(--line);margin-top:3px;overflow:hidden}
-.ubar i{display:block;height:100%;background:var(--up)}
-@media (max-width:900px){.ugrid{grid-template-columns:1fr}}
 #bUpcoming{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 #bUpcoming .up{border:1px solid var(--main);background:var(--main-soft);border-radius:10px;padding:7px 11px;font-size:13px}
 #bUpcoming .up b{color:var(--main-dark)}
@@ -211,9 +202,7 @@ body.printing .dgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 body.printing .grid2>*,body.printing .dgrid>*{min-width:0}
 body.printing .dgrid div[style*="overflow"]{max-height:none!important;overflow:visible!important}
 body.printing #dTable tr:nth-child(n+14){display:none}
-body.printing .ugrid{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}
-body.printing #unsoldCard .swrap,body.printing #bunyangCard .swrap{max-height:none;overflow:visible;border:0}
-body.print-promo #unsoldCard,body.print-promo #lotoutCard{display:none}
+body.printing #bunyangCard .swrap{max-height:none;overflow:visible;border:0}
 body.printing .loc{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 body.printing .kpi,body.printing .lc,body.printing .toplist li,body.printing .hero,body.printing .pc,body.printing .chartbox,body.printing .dgrid{break-inside:avoid}
 body.printing #detail h2,body.printing .card h2{break-after:avoid}
@@ -299,29 +288,6 @@ body.print-promo .pc{border-width:4px}
     <div class="card"><h2><span class="bar"></span>면적대별 거래 비중 · 평균가<small>선택 기간 매매</small></h2><div class="chartbox"><canvas id="areaChart"></canvas></div></div>
   </section>
 
-  <section class="card" id="unsoldCard">
-    <h2><span class="bar"></span>남양주시 공동주택 미분양 현황<small id="unsoldNote">경기데이터드림 · 경기도 주택정책과 (반기 갱신)</small></h2>
-    <div class="ugrid">
-      <div>
-        <div class="usum" id="unsoldSum"></div>
-        <div class="chartbox" style="height:200px"><canvas id="unsoldChart"></canvas></div>
-      </div>
-      <div class="swrap" style="max-height:330px"><table class="tx" id="unsoldTable"><tr><td class="empty">미분양 자료를 불러오는 중…</td></tr></table></div>
-    </div>
-  </section>
-
-  <section class="card" id="lotoutCard">
-    <h2><span class="bar"></span>신규 분양가 vs <span id="lotoutRegion">실거래</span> 평당가<small>경기도 신규 민간아파트 분양가격 (주택도시보증공사 · 경기데이터드림) · 월간</small></h2>
-    <div class="ugrid">
-      <div>
-        <div class="usum" id="lotoutSum"></div>
-        <table class="tx" id="lotoutTable"><tr><td class="empty">분양가격 자료를 불러오는 중…</td></tr></table>
-        <p class="note" style="margin:8px 0 0">분양가는 HUG 발표 기준, 실거래 평당가는 전용면적 기준 중위값입니다. 면적 기준이 다를 수 있어 흐름 비교용으로 보세요.</p>
-      </div>
-      <div class="chartbox" style="height:300px"><canvas id="lotoutChart"></canvas></div>
-    </div>
-  </section>
-
   <section class="card" id="bunyangCard">
     <h2><span class="bar"></span>진접2지구 · 왕숙신도시 분양가 · 분양일정<small id="bunyangNote">청약홈(한국부동산원) 모집공고 기준</small></h2>
     <div class="srow">
@@ -401,7 +367,7 @@ body.print-promo .pc{border-width:4px}
       <a href="https://blog.naver.com/landpoleon" target="_blank" rel="noopener" title="네이버 블로그"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="4" fill="#03c75a"/><path d="M7.5 7.5h3l3 4.6V7.5h3v9h-3l-3-4.6v4.6h-3z" fill="#fff"/></svg><span>블로그</span></a>
       <a href="https://www.instagram.com/ddang_poleon" target="_blank" rel="noopener" title="인스타그램"><svg viewBox="0 0 24 24"><defs><linearGradient id="ig2" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#fdb63a"/><stop offset=".5" stop-color="#e1306c"/><stop offset="1" stop-color="#833ab4"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig2)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.3" fill="#fff"/></svg><span>인스타</span></a>
     </nav></div></div>
-    <div>자료: 국토교통부 아파트·연립다세대·단독다가구 매매·전월세 실거래가 (공공데이터포털) · 미분양·분양가격: 경기데이터드림(경기도, 주택도시보증공사) · 분양공고: 청약홈(한국부동산원) · 매물: 땅폴레옹 홈페이지 · 주변시설 © OpenStreetMap contributors · <span id="mapSrc"></span><br>실거래가는 계약일 기준이며 신고기한(30일)으로 최근 자료는 늘어날 수 있습니다.</div>
+    <div>자료: 국토교통부 아파트·연립다세대·단독다가구 매매·전월세 실거래가 (공공데이터포털) · 분양공고: 청약홈(한국부동산원) · 매물: 땅폴레옹 홈페이지 · 주변시설 © OpenStreetMap contributors · <span id="mapSrc"></span><br>실거래가는 계약일 기준이며 신고기한(30일)으로 최근 자료는 늘어날 수 있습니다.</div>
   </div>
 </footer>
 
@@ -472,7 +438,6 @@ if (!regions.includes(S.region)) S.region = 'all';
 document.querySelector('label[for=area]').textContent = AREA_BASIS === '전용' ? '전용면적' : '연면적';
 document.getElementById('searchTitle').textContent = `${PT_SHORT} ${PT === 'house' ? '리·동별' : '단지'} 검색`;
 document.getElementById('sQ').placeholder = PT === 'house' ? '리 또는 동 이름 검색 (예: 금곡리, 장현리)' : `${PT_SHORT} 이름 또는 리 검색 (예: 금곡리)`;
-if (PT !== 'apt') document.getElementById('lotoutCard').style.display = 'none';  // 신규 분양가는 아파트 기준
 regSel.value = S.region;
 
 const fromEl = document.getElementById('from'), toEl = document.getElementById('to');
@@ -987,8 +952,6 @@ function render() {
   renderRegionChart(); renderIndex(); renderArea(sale);
   renderTop();
   renderListings();
-  renderUnsold();
-  renderLotout();
 }
 
 regSel.onchange = () => { S.region = regSel.value; S.sel = null; lstShown = 8; MAP.clear('poi'); render(); };
@@ -1001,114 +964,6 @@ document.querySelectorAll('#unit button').forEach(b => b.onclick = () => { S.uni
 document.getElementById('area').onchange = e => { S.area = e.target.value; render(); };
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => { S.top = b.dataset.t; S.sel = null; MAP.clear('poi'); renderTop(); });
 document.querySelectorAll('#topSort button').forEach(b => b.onclick = () => { S.sort = b.dataset.s; S.sel = null; MAP.clear('poi'); renderTop(); });
-
-// ---------- 미분양 (경기데이터드림 Open API — 브라우저에서 바로 호출)
-let UNSOLD = null;
-async function loadUnsold() {
-  const key = (window.DASH_CONFIG?.GG_DATA_KEY || '').trim();
-  const tbl = document.getElementById('unsoldTable');
-  if (!key) { tbl.innerHTML = '<tr><td class="empty">data/config.js 에 경기데이터드림 인증키(GG_DATA_KEY)를 넣으면 표시됩니다.</td></tr>'; return; }
-  try {
-    const url = `https://openapi.gg.go.kr/CopertnhousngUnsol?KEY=${encodeURIComponent(key)}&Type=json&pIndex=1&pSize=1000&SIGUN_NM=${encodeURIComponent('남양주시')}`;
-    const j = await (await fetch(url)).json();
-    const body = j.CopertnhousngUnsol;
-    if (!body) throw new Error(j.RESULT?.MESSAGE || '응답 형식 오류');
-    // 같은 단지(주소+시공사)의 면적별 행을 하나로 묶음
-    const g = {};
-    for (const r of body[1]?.row || []) {
-      const k = r.CNSTRCT_LOCPLC_ADDR + '|' + r.CNSTRCT_BIZNES_INFO;
-      const x = g[k] ||= {emd: r.JURISD_EMD_NM || '-', addr: (r.CNSTRCT_LOCPLC_ADDR || '미공개').replace('경기도 남양주시 ', ''), builder: r.CNSTRCT_BIZNES_INFO,
-        type: [r.PRVATE_PUBL_DIV_NM, r.RENT_LOTOUT_DIV_NM].filter(Boolean).join('·'), sub: r.LOTOUT_SUBSCRPT_DE, movein: r.MOVEIN_PREARNGE_DE, done: r.COMPLTN_YN_DIV_NM, tot: 0, uns: 0, sizes: []};
-      x.tot += +r.TOT_LOTOUT_HSHLD_CNT || 0; x.uns += +r.MT_HSHLD_CNT || 0;
-      if (r.SCALE_ACCTO_AR) x.sizes.push(`${Math.round(r.SCALE_ACCTO_AR)}㎡ ${r.MT_HSHLD_CNT}/${r.TOT_LOTOUT_HSHLD_CNT}`);
-    }
-    UNSOLD = Object.values(g).sort((a, b) => b.uns - a.uns);
-    renderUnsold();
-  } catch (e) {
-    console.warn('미분양 자료 오류', e);
-    tbl.innerHTML = `<tr><td class="empty">미분양 자료를 불러오지 못했습니다 (${esc(e.message || e)}).</td></tr>`;
-  }
-}
-const ym = v => v && v.length >= 6 ? `${v.slice(2, 4)}.${v.slice(4, 6)}` : '-';
-function renderUnsold() {
-  if (!UNSOLD) return;
-  const tot = UNSOLD.reduce((a, x) => a + x.tot, 0), uns = UNSOLD.reduce((a, x) => a + x.uns, 0);
-  const active = UNSOLD.filter(x => x.uns > 0);
-  document.getElementById('unsoldSum').innerHTML =
-    `<div><div class="k">미분양 세대</div><div class="v">${uns.toLocaleString()}</div></div>` +
-    `<div><div class="k">미분양 단지</div><div class="v">${active.length}</div></div>` +
-    `<div><div class="k">미분양률</div><div class="v">${tot ? (uns / tot * 100).toFixed(1) : 0}%</div></div>`;
-  const byEmd = {}; UNSOLD.forEach(x => byEmd[x.emd] = (byEmd[x.emd] || 0) + x.uns);
-  const emds = Object.keys(byEmd).sort((a, b) => byEmd[b] - byEmd[a]);
-  mkChart('unsoldChart', {type: 'bar', data: {labels: emds, datasets: [{data: emds.map(e => byEmd[e]), borderRadius: 4,
-      backgroundColor: emds.map(e => e === S.region ? '#E57E9B' : '#12303acc')}]},
-    options: {indexAxis: 'y', maintainAspectRatio: false, plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => `미분양 ${c.raw}세대`}}},
-      scales: {x: {beginAtZero: true, grid: {color: '#eef1f6'}}, y: {grid: {display: false}}}}});
-  document.getElementById('unsoldTable').innerHTML =
-    `<thead><tr><th>위치 · 시공사</th><th>미분양 / 총세대</th><th class="hide-m">청약</th><th class="hide-m">입주</th><th>준공</th></tr></thead><tbody>` +
-    UNSOLD.map(x => `<tr class="${x.emd === S.region ? 'hl' : ''}"><td><b>${esc(x.addr)}</b><div class="sub">${esc(x.emd)} · ${esc(x.builder || '-')} · ${esc(x.type)}</div><div class="sub">${esc(x.sizes.join(' · '))}</div></td>
-      <td><b style="color:${x.uns ? 'var(--up)' : 'var(--ink-2)'}">${x.uns.toLocaleString()}</b> / ${x.tot.toLocaleString()}<div class="ubar"><i style="width:${x.tot ? x.uns / x.tot * 100 : 0}%"></i></div></td>
-      <td class="hide-m">${ym(x.sub)}</td><td class="hide-m">${ym(x.movein)}</td><td>${esc(x.done || '-')}</td></tr>`).join('') + '</tbody>';
-}
-
-// ---------- 신규 분양가격 (경기도 전체, 면적구간별 월간 · 천원/㎡)
-let LOTOUT = null;
-const SCALE_OF = {all: ['모든면적'], s: ['전용면적 60제곱미터이하'], m: ['전용면적 60제곱미터초과 85제곱미터이하'],
-  l: ['전용면적 85제곱미터초과 102제곱미터이하', '전용면적 102제곱미터초과']};
-const SCALE_KO = {'모든면적': '전체 평균', '전용면적 60제곱미터이하': '60㎡ 이하', '전용면적 60제곱미터초과 85제곱미터이하': '60~85㎡',
-  '전용면적 85제곱미터초과 102제곱미터이하': '85~102㎡', '전용면적 102제곱미터초과': '102㎡ 초과'};
-async function loadLotout() {
-  const key = (window.DASH_CONFIG?.GG_DATA_KEY || '').trim();
-  const tbl = document.getElementById('lotoutTable');
-  if (!key) { tbl.innerHTML = '<tr><td class="empty">data/config.js 에 경기데이터드림 인증키(GG_DATA_KEY)를 넣으면 표시됩니다.</td></tr>'; return; }
-  try {
-    const m = {};   // ym -> {규모구분명: 천원/㎡}  (API가 같은 행을 중복으로 주므로 키로 묶음)
-    for (let page = 1, total = 1; (page - 1) * 1000 < total; page++) {
-      const j = await (await fetch(`https://openapi.gg.go.kr/Wntyewart?KEY=${encodeURIComponent(key)}&Type=json&pIndex=${page}&pSize=1000`)).json();
-      const body = j.Wntyewart;
-      if (!body) throw new Error(j.RESULT?.MESSAGE || '응답 형식 오류');
-      total = body[0].head[0].list_total_count;
-      for (const r of body[1]?.row || []) (m[+r.SUM_YY * 100 + +String(r.SUM_MT).trim()] ||= {})[r.SCALE_DIV_NM] = +r.LOTOUT_PC;
-    }
-    LOTOUT = m;
-    renderLotout();
-  } catch (e) {
-    console.warn('분양가격 자료 오류', e);
-    tbl.innerHTML = `<tr><td class="empty">분양가격 자료를 불러오지 못했습니다 (${esc(e.message || e)}).</td></tr>`;
-  }
-}
-const lotPy = (row, scales) => { const v = scales.map(k => row?.[k]).filter(x => x > 0); return v.length ? avg(v) * PY / 10 : null; }; // 천원/㎡ → 만원/3.3㎡
-function renderLotout() {
-  if (!LOTOUT) return;
-  const months = Object.keys(LOTOUT).map(Number).sort((a, b) => a - b);
-  const last = months.at(-1), scales = SCALE_OF[S.area];
-  const lastTr = Math.floor(TR.at(-1)[1] / 100);
-  const keys = months.filter(k => k >= Math.floor(minDate / 10000) * 100 + 1);
-  for (let k = keys.at(-1) || last; k < lastTr;) { k = k % 100 === 12 ? k + 89 : k + 1; keys.push(k); }   // 실거래가 더 최근이면 이어서 표시
-  const regName = S.region === 'all' ? '남양주시' : S.region;
-  document.getElementById('lotoutRegion').textContent = regName + ' 실거래';
-  const tm = {}; TR.forEach(r => { if (inRegion(r[0]) && areaOk(r[2], S.area)) (tm[Math.floor(r[1] / 100)] ||= []).push(r[4] / (r[2] / PY)); });
-  const trPy = k => tm[k]?.length >= 3 ? Math.round(median(tm[k])) : null;
-  const lab = k => `${String(Math.floor(k / 100)).slice(2)}.${String(k % 100).padStart(2, '0')}`;
-  mkChart('lotoutChart', {type: 'line', data: {labels: keys.map(lab), datasets: [
-      {label: '경기 신규 분양가', data: keys.map(k => LOTOUT[k] ? Math.round(lotPy(LOTOUT[k], scales)) : null), borderColor: '#E57E9B', backgroundColor: '#E57E9B', tension: .25, pointRadius: 2, spanGaps: true},
-      {label: `${regName} 매매 실거래 (중위)`, data: keys.map(trPy), borderColor: COLORS.sale, backgroundColor: COLORS.sale, tension: .25, pointRadius: 2, spanGaps: true}]},
-    options: {maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
-      plugins: {tooltip: {callbacks: {label: c => `${c.dataset.label}: ${c.raw == null ? '-' : c.raw.toLocaleString() + '만/3.3㎡'}`}}},
-      scales: {y: {grid: {color: '#eef1f6'}, ticks: {callback: v => v.toLocaleString()}}, x: {grid: {display: false}}}}});
-  const now = lotPy(LOTOUT[last], scales), yearAgo = lotPy(LOTOUT[last - 100], scales);
-  const recent = []; for (let k = lastTr, i = 0; i < 3; i++, k = k % 100 === 1 ? k - 89 : k - 1) recent.push(...(tm[k] || []));
-  const trNow = recent.length ? median(recent) : null;
-  document.getElementById('lotoutSum').innerHTML =
-    `<div><div class="k">경기 분양가 (${lab(last)})</div><div class="v">${Math.round(now).toLocaleString()}<small style="font-size:12px">만</small></div></div>` +
-    `<div><div class="k">1년 전 대비</div><div class="v">${yearAgo ? deltaHtml(pct(now, yearAgo), '') : '-'}</div></div>` +
-    `<div><div class="k">${esc(regName)} 실거래 / 분양가</div><div class="v">${trNow ? Math.round(trNow / now * 100) + '<small style="font-size:12px">%</small>' : '-'}</div></div>`;
-  document.getElementById('lotoutTable').innerHTML =
-    `<thead><tr><th>면적 구간</th><th>${lab(last)} 분양가</th><th>1년 전</th><th>변동</th></tr></thead><tbody>` +
-    Object.keys(SCALE_KO).map(k => { const a = lotPy(LOTOUT[last], [k]), b = lotPy(LOTOUT[last - 100], [k]);
-      return `<tr class="${scales.includes(k) && S.area !== 'all' ? 'hl' : ''}"><td>${SCALE_KO[k]}</td><td><b>${a ? Math.round(a).toLocaleString() + '만' : '-'}</b></td><td>${b ? Math.round(b).toLocaleString() + '만' : '-'}</td><td>${a && b ? deltaHtml(pct(a, b), '') : '-'}</td></tr>`; }).join('') +
-    `</tbody>`;
-}
 
 // ---------- 진접2 · 왕숙 분양 (청약홈 모집공고, fetch_data.py 가 data/bunyang.js 로 저장)
 const BS = {dist: 'main'};
@@ -1158,8 +1013,6 @@ function boot() {
   document.getElementById('mapSrc').textContent = useKakao ? '지도 © Kakao' : '지도 © OpenStreetMap contributors · CARTO';
   renderSearch();
   render();
-  loadUnsold();
-  loadLotout();
   renderBunyang();
 }
 const KAKAO_KEY = (window.DASH_CONFIG?.KAKAO_JS_KEY || '').trim();
