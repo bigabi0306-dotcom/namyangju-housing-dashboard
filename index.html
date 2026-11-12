@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>남양주 주거용 시세</title>
-<link rel="icon" href="assets/logo.png">
+<link rel="icon" href="assets/favicon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -29,10 +29,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",s
 header{background:var(--main);color:var(--navy);border-bottom:4px solid var(--navy)}
 .hwrap{max-width:1440px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:12px}
-.brand img{width:84px;height:84px;background:#fff;border-radius:50%;padding:2px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.brand img{height:54px;width:auto;max-width:46vw;object-fit:contain;background:#fff;border-radius:14px;padding:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .brand .t1{font-size:22px;font-weight:900;letter-spacing:-.5px}
-.brand .t1 em{font-style:normal;color:#fff;background:var(--navy);padding:0 8px;border-radius:6px;margin-right:2px}
-.brand .t2{font-size:12px;opacity:.8}
+.brand .t1 em{display:none;font-style:normal;color:#fff;background:var(--navy);padding:0 8px;border-radius:6px;margin-right:2px}
+.brand .t2{font-size:12px;opacity:.8;max-width:170px}
 .htitle{flex:1;min-width:240px}
 .htitle h1{margin:0;font-size:20px;font-weight:700}
 .htitle .sub{font-size:12px;opacity:.75}
@@ -189,7 +189,7 @@ footer b{color:var(--main)}
 .hero .row b{display:inline-block;min-width:64px;color:var(--ink-2);font-weight:500}
 .hero .cmp{font-size:13px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
 .pc{display:flex;gap:18px;align-items:center;border:3px solid var(--main);border-radius:14px;padding:14px 18px;background:#fff}
-.pc img{width:96px;height:96px;flex:none}
+.pc img{width:220px;height:auto;flex:none}
 .pc-slogan{font-size:12px;color:var(--main-dark);font-weight:700}
 .pc-name{font-size:17px;font-weight:900}
 .pc-tel{font-size:28px;font-weight:900;color:var(--navy);line-height:1.2}
@@ -201,7 +201,7 @@ footer b{color:var(--main)}
 body.printing{background:#fff}
 body.printing main{max-width:718px;padding:12px 0;gap:12px}
 body.printing .hwrap{max-width:718px;padding:10px 0;gap:10px}
-body.printing .brand img{width:64px;height:64px}
+body.printing .brand img{height:54px;width:auto}
 body.printing footer .fw{max-width:718px;padding:10px 0;gap:10px;font-size:11px}
 body.printing .controls,body.printing #searchCard,body.printing #listCard,body.printing header .sns,body.printing footer .sns{display:none}
 body.printing #printInfo,body.printing #printContact{display:block}
