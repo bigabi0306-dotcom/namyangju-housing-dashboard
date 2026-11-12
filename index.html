@@ -126,6 +126,7 @@ main{max-width:1440px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-dir
 .tmctl #tmMonth{min-width:84px;font-size:18px;color:var(--main-dark)}
 .tmplay{font:inherit;font-weight:700;border:0;border-radius:8px;background:var(--main);color:#fff;padding:7px 14px;cursor:pointer}
 .tmgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+#tmap .leaflet-tile-pane{filter:saturate(.35) brightness(1.04)}
 #tmap{height:420px;border-radius:10px;border:1px solid var(--line)}
 #tmLegend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:6px;align-items:center}
 #tmLegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:3px;vertical-align:-1px}
@@ -644,8 +645,8 @@ const markers = {};
 
 function leafletMap(el) {
   const map = L.map(el, {scrollWheelZoom:false}).setView([37.70, 127.20], 11);
-  // OSM 공식 타일은 file:// 로 열면 차단되므로 CARTO 타일(OSM 데이터) 사용
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom:19, subdomains:'abcd', attribution:'© OpenStreetMap contributors © CARTO'}).addTo(map);
+  // OpenStreetMap 타일 (CARTO 무료 타일은 API 키 필요로 바뀜). OSM 정책상 리퍼러가 필요해 명시
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap contributors', referrerPolicy:'strict-origin-when-cross-origin'}).addTo(map);
   const groups = {top: L.layerGroup().addTo(map), poi: L.layerGroup().addTo(map)};
   return {
     clear: g => groups[g].clearLayers(),
@@ -1029,8 +1030,8 @@ const popSum = (region, ym) => { if (!POP) return null; let t = 0, h = 0, n = 0;
 function tmEnsureMap() {
   if (TM.map) return;
   TM.map = L.map('tmap', {scrollWheelZoom: false}).setView([37.66, 127.21], 11);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {maxZoom: 19, subdomains: 'abcd',
-    attribution: '© OpenStreetMap contributors © CARTO'}).addTo(TM.map);
+  // CARTO 무료 타일이 API 키를 요구하게 되어 OpenStreetMap 타일 사용 (OSM 정책상 리퍼러 필요 → 명시)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'© OpenStreetMap contributors', referrerPolicy:'strict-origin-when-cross-origin'}).addTo(TM.map);
   TM.pops = L.layerGroup().addTo(TM.map);
   TM.dots = L.layerGroup().addTo(TM.map);
 }
@@ -1175,7 +1176,7 @@ document.querySelectorAll('#bDist button').forEach(b => b.onclick = () => { BS.d
 function boot() {
   const useKakao = !!window.kakao?.maps;
   MAP = useKakao ? kakaoMap(document.getElementById('map')) : leafletMap(document.getElementById('map'));
-  document.getElementById('mapSrc').textContent = useKakao ? '지도 © Kakao' : '지도 © OpenStreetMap contributors · CARTO';
+  document.getElementById('mapSrc').textContent = useKakao ? '지도 © Kakao' : '지도 © OpenStreetMap contributors';
   renderSearch();
   render();
   renderBunyang();
